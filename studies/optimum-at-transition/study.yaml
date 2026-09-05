@@ -1,0 +1,131 @@
+slug: optimum-at-transition
+title: Does collective performance peak at the diversity transition? (post-hoc registration of the first sweep)
+created: 2026-09-05
+exploratory: true
+
+theory:
+  name: optimum-at-transition
+  version: 1
+  supersedes: null
+  statement: |
+    In a population of innovating agents that copy better neighbours and otherwise search locally,
+    the amount of communication between agents is a control parameter with a phase transition in
+    the population's diversity, and collective performance (mean fitness) is maximised at that
+    transition. The location of the transition, and hence of the optimum, depends on the
+    ruggedness of the problem, so that rescaling connectivity by the transition location collapses
+    the curves for different ruggedness onto one.
+  formal: |
+    Order parameter: diversity D, the mean pairwise Hamming distance divided by n. Susceptibility:
+    population size times the run-to-run variance of an observable across seeds on the same
+    landscape. Control parameter: density p of an Erdos-Renyi communication graph. The claim is
+    argmax_p performance(p) = argmax_p chi_D(p), and that p*(K) varies with K.
+    Entailed by the setup, not by the theory: an interior optimum exists at all (Lazer & Friedman
+    2007; Derex et al. 2018). That is not counted as evidence.
+  scope: |
+    Lazer-Friedman copy-or-climb agents, 100 agents, NK landscapes with n = 20 and K in 2..12,
+    Erdos-Renyi graphs, synchronous updates, 500 steps.
+  prior_credence: 0.35
+
+alternatives:
+  - id: H_perc
+    statement: |
+      The diversity transition is the percolation transition of the random graph, a structural
+      property with no landscape content. The performance optimum is set by the dynamics of spread
+      versus local search and sits elsewhere.
+  - id: H_null
+    statement: |
+      No interior optimum; performance is monotone in connectivity at the horizon studied.
+
+predictions:
+  - id: P1
+    statement: The connectivity that maximises mean fitness coincides with the connectivity where the susceptibility of diversity peaks.
+    critical: true
+    pass_if: ratio p*_perf / p*_chi(diversity) within [0.7, 1.4] for every K >= 2
+    fail_if: ratio outside [0.7, 1.4] on the same side for every K >= 2 (systematic displacement)
+    p_pass_if_true: 0.85
+    p_pass_if_false: 0.15
+    discriminates: [H_perc]
+    outcome: fail
+    evidence: |
+      results/figures/summary.md, peak coincidence table. p*_perf 0.026 to 0.043; p*_chi(diversity)
+      0.0145 to 0.0171; ratios 1.8, 2.8, 2.8, 1.8, 1.8 for K = 2, 4, 6, 8, 12. All above 1.4, all
+      on the same side. Finite-size check (results/finite_size.md): ratio to the diversity
+      half-drop 2.0, 2.5, 1.8 at N = 100, 200, 400; no drift toward 1.
+  - id: P2
+    statement: The transition location depends on ruggedness, so rescaling p by the transition location for each K tightens the diversity curves across K.
+    critical: false
+    pass_if: across-K spread of the diversity curve after rescaling by p_half-drop(K) is at most 70% of the unrescaled spread
+    fail_if: rescaled spread is at least 90% of the unrescaled spread
+    p_pass_if_true: 0.8
+    p_pass_if_false: 0.3
+    discriminates: [H_perc]
+    outcome: fail
+    evidence: |
+      summary.md, data collapse table: diversity spread 0.0113 unrescaled, 0.0104 rescaled (92%).
+      The transition sits at p = 0.017 to 0.018 for every K. There is no K-dependence to remove.
+  - id: P3
+    statement: Explicit copy-noise temperature on a complete graph and connectivity on a random graph trace the same curve in the (diversity, performance) plane.
+    critical: false
+    pass_if: the temperature sweep spans at least 50% of the connectivity sweep's diversity range and the mean nearest-point distance is below 0.005 for all K >= 2
+    fail_if: the temperature sweep spans at least 50% of the diversity range and the mean nearest-point distance exceeds 0.01 for any K >= 2
+    p_pass_if_true: 0.7
+    p_pass_if_false: 0.25
+    discriminates: [H_perc]
+    outcome: inconclusive
+    evidence: |
+      results/figures/connectivity_vs_temperature.png. The temperature sweep spans time-averaged
+      diversity 0 to 0.02 against 0 to 0.5 for the connectivity sweep (4% coverage), so the
+      comparison could not be made as designed. Best temperature reaches 0.918 against 0.922 for
+      the best connectivity at K = 6: close in performance, not through diversity.
+
+analysis_plan: |
+  As run: uv run python -m critpop sweep; uv run python -m critpop analyze.
+  K in {0, 2, 4, 6, 8, 12}; p in {0} plus 21 log-spaced values from 0.00316 to 1; T in
+  {0, 0.003, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1} at p = 1; 6 landscapes x 8 seeds per point;
+  500 steps; horizons 25, 50, 100, 200, 499. Peak locations by argmax with 3-point parabolic
+  refinement in log10 p. Susceptibility = N x within-landscape variance across seeds.
+  Robustness: horizon, ruggedness, and population size N in {50, 100, 200, 400} at K = 6
+  (scripts/finite_size.py). Seeds are fixed from (K, landscape, seed, parameter).
+
+kill_rule: |
+  If P1 fails, the claim that the optimum sits at the diversity transition is abandoned in this
+  form. A successor must predict something about the optimum's location that the sweep data do
+  not already contain.
+
+results:
+  summary: |
+    An interior optimum exists for every K >= 2, at mean degree 2.6 to 4.3, stable from t = 25
+    to t = 499. Its gain over full connectivity grows with ruggedness: +0.009 (K = 2) to +0.031
+    (K = 12) in units of the global optimum. The diversity transition is at mean degree 1.7 for
+    every K and is the percolation transition of the graph. The optimum sits about twice above
+    it and the gap does not shrink from N = 100 to 400. Copy-noise temperature recovers most of
+    the gain (0.918 against 0.922 at K = 6) with near-zero population diversity.
+  exploratory:
+    - finding: |
+        The Still et al. non-predictive information proxy peaks where performance peaks
+        (Spearman 0.85 to 0.95 against performance across p, K >= 2). That is a maximum of the
+        dissipation bound at the optimum, not a minimum.
+      next_test: |
+        State the direction before measuring, on a topology where the optimum can be moved
+        (spread-vs-search); check whether the proxy follows the optimum or the transition.
+    - finding: |
+        Temperature and connectivity reach similar performance by different routes: connectivity
+        keeps parallel lineages in space, temperature delays commitment in time.
+      next_test: |
+        An order parameter that measures spread rate directly (agents adopting a different
+        solution per step) rather than population diversity. See spread-vs-search P4.
+
+review:
+  strongest_objection: |
+    The transition the theory was tested against is graph percolation, which has no landscape
+    content. No landscape-dependent transition was identified, so the test may have been against
+    the wrong order parameter. The pass and fail criteria were written after the data: this study
+    is a post-hoc registration of a sweep run before the framework existed, which is why it is
+    marked exploratory and its verdict does not count toward calibration.
+  confounds_checked:
+    - horizon (25 to 499 steps), optimum location unchanged
+    - population size (50 to 400), ratio of optimum to transition unchanged for N >= 100
+    - ruggedness (K 2 to 12), location unchanged, effect size grows with K
+  what_would_change_my_mind: |
+    A topology with a landscape-dependent transition whose location coincides with the optimum
+    within a factor of 1.4 across K.
