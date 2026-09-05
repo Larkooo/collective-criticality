@@ -42,6 +42,12 @@ class RunResult:
     t_converge: int
     copy_rate: float = 0.0
     visited: float = 0.0
+    n_evals: int = 0          # fitness evaluations spent on local search
+    n_copies: int = 0         # adoptions of a neighbour's different solution
+    lineages: int = 0         # distinct ancestral lineages surviving at the end (ancestry, not fitness)
+    lineage_eff: float = 0.0  # effective number of lineages, 1 / sum p_i^2
+    final_f: np.ndarray | None = None
+    final_X: np.ndarray | None = None
 
 
 def _diversity(X: np.ndarray) -> float:
@@ -68,7 +74,7 @@ def _fbin(f: np.ndarray) -> np.ndarray:
 
 def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         rng: np.random.Generator, islands: int | None = None, migration: float = 0.0,
-        n_trials: int = 1) -> RunResult:
+        n_trials: int = 1, return_state: bool = False) -> RunResult:
     m, n = n_agents, land.n
     X = rng.integers(0, 2, (m, n), dtype=np.uint8)
     f = land.fitness(X)
@@ -84,6 +90,8 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         A0 = isl[:, None] == isl[None, :]
         np.fill_diagonal(A0, False)
     A = A0
+    lineage = (ar // (m // islands)) if islands is not None else ar.copy()
+    n_evals = n_copies = 0
 
     mean_f = np.empty(steps, np.float32)
     max_f = np.empty(steps, np.float32)
@@ -119,9 +127,13 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         newX, newf = X.copy(), f.copy()
         newX[copy] = X[j_best[copy]]
         newf[copy] = f[j_best[copy]]
-        changed_frac[t] = (copy & (X[j_best] != X).any(1)).mean()
+        changed = copy & (X[j_best] != X).any(1)
+        changed_frac[t] = changed.mean()
+        n_copies += int(changed.sum())
+        lineage = np.where(copy, lineage[j_best], lineage)
 
         idx = np.where(~copy)[0]
+        n_evals += int(idx.size) * n_trials
         if idx.size and n_trials == 1:
             cand = X[idx].copy()
             cand[np.arange(idx.size), rng.integers(0, n, idx.size)] ^= 1
@@ -154,5 +166,9 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
     i_mem = _mi(s, signal_bins[:-1].ravel(), N_FBINS, N_FBINS + 1)
     i_pred = _mi(s, signal_bins[1:].ravel(), N_FBINS, N_FBINS + 1)
     visited = float(np.mean([np.unique(packed[:, i, :], axis=0).shape[0] for i in range(m)]))
+    counts = np.bincount(lineage, minlength=m).astype(float)
+    p_lin = counts[counts > 0] / m
     return RunResult(mean_f, max_f, div, nu, i_mem, i_pred, i_mem - i_pred, t_conv,
-                     float(changed_frac.mean()), visited)
+                     float(changed_frac.mean()), visited, n_evals, n_copies,
+                     int((counts > 0).sum()), float(1.0 / (p_lin ** 2).sum()),
+                     f.copy() if return_state else None, X.copy() if return_state else None)
