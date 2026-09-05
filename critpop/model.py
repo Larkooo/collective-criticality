@@ -13,6 +13,12 @@ hill-climb locally. This is the Lazer & Friedman (2007) model with two additions
 * `n_trials`    single-bit flips an exploring agent tries per step, adopting the best improving
                 one. 1 is the Lazer-Friedman rule. This is the local search rate dial.
 
+Per-agent fitness never decreases (an agent copies only a strictly better neighbour and keeps
+only an improving flip), so the population maximum is non-decreasing and the final population
+maximum equals the best fitness ever evaluated that improved anyone. best-found = max_f[-1].
+Ancestry (lineage labels inherited on copying) is recorded as a diagnostic. It is not a count
+of independent searches: selection removes roots after their search has contributed.
+
 Defaults reproduce the first study exactly (same random draws in the same order).
 
 Recorded per step: mean fitness, max fitness, diversity (mean pairwise Hamming distance
@@ -46,8 +52,13 @@ class RunResult:
     n_copies: int = 0         # adoptions of a neighbour's different solution
     lineages: int = 0         # distinct ancestral lineages surviving at the end (ancestry, not fitness)
     lineage_eff: float = 0.0  # effective number of lineages, 1 / sum p_i^2
+    contacts: int = 0         # cross-island observation events offered (islands mode)
+    best_holders: float = 0.0 # fraction of agents whose final genotype equals the best-found genotype
+    adopt_before_complete: int = -1  # adoptions while the recipient still had an improving single flip (diagnostics only)
+    adopt_after_complete: int = -1   # adoptions by a recipient already at a local optimum (diagnostics only)
     final_f: np.ndarray | None = None
     final_X: np.ndarray | None = None
+    final_lineage: np.ndarray | None = None
 
 
 def _diversity(X: np.ndarray) -> float:
@@ -74,7 +85,10 @@ def _fbin(f: np.ndarray) -> np.ndarray:
 
 def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         rng: np.random.Generator, islands: int | None = None, migration: float = 0.0,
-        n_trials: int = 1, return_state: bool = False) -> RunResult:
+        n_trials: int = 1, return_state: bool = False, diagnostics: bool = False) -> RunResult:
+    """diagnostics=True evaluates, at each adoption, whether the recipient was already at a
+    local optimum. Those evaluations are measurement only: not charged to any budget and
+    drawing no random numbers, so results are unchanged."""
     m, n = n_agents, land.n
     X = rng.integers(0, 2, (m, n), dtype=np.uint8)
     f = land.fitness(X)
@@ -91,7 +105,8 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         np.fill_diagonal(A0, False)
     A = A0
     lineage = (ar // (m // islands)) if islands is not None else ar.copy()
-    n_evals = n_copies = 0
+    n_evals = n_copies = contacts = 0
+    before_complete = after_complete = 0
 
     mean_f = np.empty(steps, np.float32)
     max_f = np.empty(steps, np.float32)
@@ -107,6 +122,7 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         if islands is not None:
             A = A0.copy()
             mig = np.where(rng.random(m) < migration)[0]
+            contacts += int(mig.size)
             if mig.size:
                 other = (isl[mig] + rng.integers(1, islands, mig.size)) % islands
                 A[mig, other * size + rng.integers(0, size, mig.size)] = True
@@ -130,6 +146,13 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         changed = copy & (X[j_best] != X).any(1)
         changed_frac[t] = changed.mean()
         n_copies += int(changed.sum())
+        if diagnostics and changed.any():
+            rec = np.where(changed)[0]
+            nb = np.repeat(X[rec][:, None, :], n, axis=1)
+            nb[np.arange(rec.size)[:, None], np.arange(n)[None, :], np.arange(n)[None, :]] ^= 1
+            improvable = (land.fitness(nb.reshape(-1, n)).reshape(rec.size, n) > f[rec][:, None]).any(1)
+            before_complete += int(improvable.sum())
+            after_complete += int((~improvable).sum())
         lineage = np.where(copy, lineage[j_best], lineage)
 
         idx = np.where(~copy)[0]
@@ -168,7 +191,11 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
     visited = float(np.mean([np.unique(packed[:, i, :], axis=0).shape[0] for i in range(m)]))
     counts = np.bincount(lineage, minlength=m).astype(float)
     p_lin = counts[counts > 0] / m
+    best_holders = float((X == X[int(f.argmax())]).all(1).mean())
     return RunResult(mean_f, max_f, div, nu, i_mem, i_pred, i_mem - i_pred, t_conv,
                      float(changed_frac.mean()), visited, n_evals, n_copies,
                      int((counts > 0).sum()), float(1.0 / (p_lin ** 2).sum()),
-                     f.copy() if return_state else None, X.copy() if return_state else None)
+                     contacts, best_holders,
+                     before_complete if diagnostics else -1, after_complete if diagnostics else -1,
+                     f.copy() if return_state else None, X.copy() if return_state else None,
+                     lineage.copy() if return_state else None)
