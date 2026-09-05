@@ -713,7 +713,7 @@ wheels = [
 [[package]]
 name = "sever"
 version = "0.1.0"
-source = { git = "https://github.com/Larkooo/sever#c0489c42c04870030136518d17cb80beb9f84986" }
+source = { git = "https://github.com/Larkooo/sever#0c5f364e5c4870bc9e81044bcf8e66e21f25d379" }
 dependencies = [
     { name = "pyyaml" },
 ]
