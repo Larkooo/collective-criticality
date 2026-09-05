@@ -35,7 +35,7 @@ def main():
              "Endpoint = each island's best final fitness. E[max of G] is exact from the empirical endpoint CDF per landscape, then averaged over landscapes.\n",
              "| K | mean endpoint mu_L | endpoint sd sigma_L | sd of population mean at m=0 | E[max of 10] exact | study-2 plateau (max over interior m, biased up) | study-2 perf at m = 0.0316 (fixed grid point) | study-2 perf at m = 1 |",
              "|---|---|---|---|---|---|---|---|"]
-    store = {}
+    store, gaps = {}, []
     for k in KS:
         ex, mu, sd, popsd = [], [], [], []
         for li in range(N_LAND):
@@ -54,10 +54,15 @@ def main():
         curve = np.array([d["perf"][sel & (d["m"] == m)].mean() for m in MS])
         fixed = curve[np.argmin(np.abs(np.array(MS) - 0.0316))]
         lines.append(f"| {k} | {np.mean(mu):.4f} | {np.mean(sd):.4f} | {np.mean(popsd):.4f} | {np.mean(ex):.4f} | {curve[1:-1].max():.4f} | {fixed:.4f} | {curve[-1]:.4f} |")
-    lines.append("\nReading: the exact expected best-of-10 of isolated endpoints is within about 0.003 to 0.016 of the mean-fitness plateau, "
-                 "and the gap is largest at K = 12. Whether that gap is selection bias on the plateau, a real bonus from copying a higher "
-                 "mid-climb point, or the mean-versus-best metric difference is exactly what study 3 must separate with a best-found metric, "
-                 "ancestry-measured lineage counts, and an out-of-sample prediction.\n")
+        gaps.append((float(np.mean(ex)), float(curve[1:-1].max()), float(fixed)))
+    gaps_plateau = [row[1] - row[0] for row in gaps]
+    gaps_fixed = [row[2] - row[0] for row in gaps]
+    lines.append("\nGaps against the exact reference, in units of the global maximum:")
+    lines.append(f"- plateau maximum minus reference: {', '.join(f'{g:+.4f}' for g in gaps_plateau)} for K = {KS} (biased upward by selection over the grid)")
+    lines.append(f"- fixed grid point m = 0.0316 minus reference: {', '.join(f'{g:+.4f}' for g in gaps_fixed)} for K = {KS}")
+    lines.append("Not all gaps lie within 0.010. Whether the discrepancy is selection bias, a real bonus from copying a higher "
+                 "mid-climb point, or the mean-versus-best metric difference is what study 3 must separate, with a best-found "
+                 "metric, ancestry-measured lineage counts, disjoint calibration runs, and an out-of-sample prediction.\n")
     np.savez_compressed("results/exploratory/island_endpoints.npz", **store)
     open("results/exploratory/order_stat_check.md", "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))

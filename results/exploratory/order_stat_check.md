@@ -9,5 +9,8 @@ Endpoint = each island's best final fitness. E[max of G] is exact from the empir
 | 6 | 0.8797 | 0.0475 | 0.0152 | 0.9492 | 0.9536 | 0.9362 | 0.9280 |
 | 12 | 0.8436 | 0.0410 | 0.0100 | 0.9083 | 0.9286 | 0.8993 | 0.8735 |
 
-Reading: the exact expected best-of-10 of isolated endpoints is within about 0.003 to 0.016 of the mean-fitness plateau, and the gap is largest at K = 12. Whether that gap is selection bias on the plateau, a real bonus from copying a higher mid-climb point, or the mean-versus-best metric difference is exactly what study 3 must separate with a best-found metric, ancestry-measured lineage counts, and an out-of-sample prediction.
+Gaps against the exact reference, in units of the global maximum:
+- plateau maximum minus reference: +0.0034, +0.0044, +0.0204 for K = [2, 6, 12] (biased upward by selection over the grid)
+- fixed grid point m = 0.0316 minus reference: +0.0011, -0.0130, -0.0090 for K = [2, 6, 12]
+Not all gaps lie within 0.010. Whether the discrepancy is selection bias, a real bonus from copying a higher mid-climb point, or the mean-versus-best metric difference is what study 3 must separate, with a best-found metric, ancestry-measured lineage counts, disjoint calibration runs, and an out-of-sample prediction.
 
