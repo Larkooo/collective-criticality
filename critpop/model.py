@@ -1,0 +1,114 @@
+"""Population of agents that copy a better neighbour when they see one, and otherwise
+hill-climb locally. This is the Lazer & Friedman (2007) model with two additions:
+
+* `p_link`      density of the random (Erdos-Renyi) communication graph. 0 = isolated
+                agents, 1 = everyone sees everyone. This is the connectivity dial.
+* `temperature` optional noise in the copy decision. With T > 0 an agent copies its best
+                neighbour with probability sigmoid((f_neighbour - f_self) / T). T = 0 is
+                the deterministic rule. This is the explicit temperature dial, used to test
+                whether connectivity behaves like a temperature.
+
+Recorded per step: mean fitness, max fitness, diversity (mean pairwise Hamming distance
+normalised by n), and the number of distinct solutions. Recorded per run: Still et al.
+(2012) memory / predictive-power / non-predictive information, computed on a coarse
+proxy (agent fitness bin as the state, best-neighbour fitness bin as the signal)."""
+from dataclasses import dataclass
+
+import numpy as np
+
+from .landscape import NK
+
+N_FBINS = 10  # fitness bins for the information proxy; bin N_FBINS means "no neighbour"
+
+
+@dataclass
+class RunResult:
+    mean_f: np.ndarray
+    max_f: np.ndarray
+    diversity: np.ndarray
+    n_unique: np.ndarray
+    i_mem: float
+    i_pred: float
+    i_np: float
+    t_converge: int
+
+
+def _diversity(X: np.ndarray) -> float:
+    m, n = X.shape
+    ones = X.sum(0).astype(np.int64)
+    return float((ones * (m - ones)).sum() / (m * (m - 1) / 2) / n)
+
+
+def _n_unique(X: np.ndarray) -> int:
+    return int(np.unique(np.packbits(X, axis=1), axis=0).shape[0])
+
+
+def _mi(a: np.ndarray, b: np.ndarray, na: int, nb: int) -> float:
+    joint = np.bincount(a * nb + b, minlength=na * nb).reshape(na, nb).astype(float)
+    joint /= joint.sum()
+    pa, pb = joint.sum(1, keepdims=True), joint.sum(0, keepdims=True)
+    nz = joint > 0
+    return float((joint[nz] * np.log2(joint[nz] / (pa * pb)[nz])).sum())
+
+
+def _fbin(f: np.ndarray) -> np.ndarray:
+    return np.minimum((f * N_FBINS).astype(np.int64), N_FBINS - 1)
+
+
+def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
+        rng: np.random.Generator) -> RunResult:
+    m, n = n_agents, land.n
+    X = rng.integers(0, 2, (m, n), dtype=np.uint8)
+    f = land.fitness(X)
+    U = np.triu(rng.random((m, m)) < p_link, 1)
+    A = U | U.T
+    ar = np.arange(m)
+
+    mean_f = np.empty(steps, np.float32)
+    max_f = np.empty(steps, np.float32)
+    div = np.empty(steps, np.float32)
+    nu = np.empty(steps, np.int32)
+    state_bins = np.empty((steps, m), np.int64)
+    signal_bins = np.empty((steps, m), np.int64)
+    t_conv = -1
+
+    for t in range(steps):
+        F = np.where(A, f[None, :], -np.inf)
+        j_best = F.argmax(1)
+        f_best = F[ar, j_best]
+        has_nb = np.isfinite(f_best)
+        signal_bins[t] = np.where(has_nb, _fbin(np.where(has_nb, f_best, 0.0)), N_FBINS)
+
+        if temperature <= 0:
+            copy = f_best > f
+        else:
+            gap = np.where(has_nb, f_best - f, -np.inf)
+            with np.errstate(over="ignore"):
+                p_copy = 1.0 / (1.0 + np.exp(-gap / temperature))
+            copy = rng.random(m) < p_copy
+
+        newX, newf = X.copy(), f.copy()
+        newX[copy] = X[j_best[copy]]
+        newf[copy] = f[j_best[copy]]
+
+        idx = np.where(~copy)[0]
+        if idx.size:
+            cand = X[idx].copy()
+            cand[np.arange(idx.size), rng.integers(0, n, idx.size)] ^= 1
+            fc = land.fitness(cand)
+            better = fc > f[idx]
+            newX[idx[better]] = cand[better]
+            newf[idx[better]] = fc[better]
+
+        X, f = newX, newf
+        state_bins[t] = _fbin(f)
+        mean_f[t], max_f[t] = f.mean(), f.max()
+        div[t] = _diversity(X)
+        nu[t] = _n_unique(X)
+        if t_conv < 0 and nu[t] == 1:
+            t_conv = t
+
+    s = state_bins[:-1].ravel()
+    i_mem = _mi(s, signal_bins[:-1].ravel(), N_FBINS, N_FBINS + 1)
+    i_pred = _mi(s, signal_bins[1:].ravel(), N_FBINS, N_FBINS + 1)
+    return RunResult(mean_f, max_f, div, nu, i_mem, i_pred, i_mem - i_pred, t_conv)

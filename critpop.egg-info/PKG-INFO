@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: critpop
+Version: 0.1.0
+Summary: Does connectivity act like temperature in a population of innovating agents? Peak-coincidence, data-collapse, and non-predictive-information tests on NK landscapes.
+Requires-Python: >=3.11
+Requires-Dist: numpy>=1.26
+Requires-Dist: matplotlib>=3.8

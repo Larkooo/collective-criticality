@@ -1,0 +1,13 @@
+[project]
+name = "critpop"
+version = "0.1.0"
+description = "Does connectivity act like temperature in a population of innovating agents? Peak-coincidence, data-collapse, and non-predictive-information tests on NK landscapes."
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26", "matplotlib>=3.8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["critpop"]
