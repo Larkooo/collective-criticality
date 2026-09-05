@@ -1,0 +1,23 @@
+status: refuted
+prior_credence: 0.35
+posterior_credence: 0.0264
+log10_evidence: -1.297
+predictions:
+- id: P1
+  critical: true
+  outcome: fail
+  likelihood_ratio: 0.176
+  weak_test: false
+- id: P2
+  critical: false
+  outcome: fail
+  likelihood_ratio: 0.286
+  weak_test: true
+- id: P3
+  critical: false
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  weak_test: true
+missing: []
+computed_at: '2026-09-05T21:53:07+00:00'
+exploratory: true
