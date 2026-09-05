@@ -7,9 +7,18 @@ hill-climb locally. This is the Lazer & Friedman (2007) model with two additions
                 neighbour with probability sigmoid((f_neighbour - f_self) / T). T = 0 is
                 the deterministic rule. This is the explicit temperature dial, used to test
                 whether connectivity behaves like a temperature.
+* `islands`     if set, the graph is `islands` complete cliques of equal size instead of an
+                Erdos-Renyi graph, and `migration` is the per-agent per-step probability of
+                observing one random agent on another island (study spread-vs-search).
+* `n_trials`    single-bit flips an exploring agent tries per step, adopting the best improving
+                one. 1 is the Lazer-Friedman rule. This is the local search rate dial.
+
+Defaults reproduce the first study exactly (same random draws in the same order).
 
 Recorded per step: mean fitness, max fitness, diversity (mean pairwise Hamming distance
-normalised by n), and the number of distinct solutions. Recorded per run: Still et al.
+normalised by n), and the number of distinct solutions. Recorded per run: copy rate (mean
+fraction of agents per step that adopted a neighbour's solution different from their own) and
+the mean number of distinct solutions each agent visited. Recorded per run: Still et al.
 (2012) memory / predictive-power / non-predictive information, computed on a coarse
 proxy (agent fitness bin as the state, best-neighbour fitness bin as the signal)."""
 from dataclasses import dataclass
@@ -31,6 +40,8 @@ class RunResult:
     i_pred: float
     i_np: float
     t_converge: int
+    copy_rate: float = 0.0
+    visited: float = 0.0
 
 
 def _diversity(X: np.ndarray) -> float:
@@ -56,13 +67,23 @@ def _fbin(f: np.ndarray) -> np.ndarray:
 
 
 def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
-        rng: np.random.Generator) -> RunResult:
+        rng: np.random.Generator, islands: int | None = None, migration: float = 0.0,
+        n_trials: int = 1) -> RunResult:
     m, n = n_agents, land.n
     X = rng.integers(0, 2, (m, n), dtype=np.uint8)
     f = land.fitness(X)
-    U = np.triu(rng.random((m, m)) < p_link, 1)
-    A = U | U.T
     ar = np.arange(m)
+    if islands is None:
+        U = np.triu(rng.random((m, m)) < p_link, 1)
+        A0 = U | U.T
+    else:
+        if m % islands:
+            raise ValueError("n_agents must be a multiple of islands")
+        size = m // islands
+        isl = ar // size
+        A0 = isl[:, None] == isl[None, :]
+        np.fill_diagonal(A0, False)
+    A = A0
 
     mean_f = np.empty(steps, np.float32)
     max_f = np.empty(steps, np.float32)
@@ -70,9 +91,17 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
     nu = np.empty(steps, np.int32)
     state_bins = np.empty((steps, m), np.int64)
     signal_bins = np.empty((steps, m), np.int64)
+    packed = np.empty((steps, m, (n + 7) // 8), np.uint8)
+    changed_frac = np.empty(steps, np.float64)
     t_conv = -1
 
     for t in range(steps):
+        if islands is not None:
+            A = A0.copy()
+            mig = np.where(rng.random(m) < migration)[0]
+            if mig.size:
+                other = (isl[mig] + rng.integers(1, islands, mig.size)) % islands
+                A[mig, other * size + rng.integers(0, size, mig.size)] = True
         F = np.where(A, f[None, :], -np.inf)
         j_best = F.argmax(1)
         f_best = F[ar, j_best]
@@ -90,17 +119,30 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
         newX, newf = X.copy(), f.copy()
         newX[copy] = X[j_best[copy]]
         newf[copy] = f[j_best[copy]]
+        changed_frac[t] = (copy & (X[j_best] != X).any(1)).mean()
 
         idx = np.where(~copy)[0]
-        if idx.size:
+        if idx.size and n_trials == 1:
             cand = X[idx].copy()
             cand[np.arange(idx.size), rng.integers(0, n, idx.size)] ^= 1
             fc = land.fitness(cand)
             better = fc > f[idx]
             newX[idx[better]] = cand[better]
             newf[idx[better]] = fc[better]
+        elif idx.size:
+            bits = rng.integers(0, n, (idx.size, n_trials))
+            cand = np.repeat(X[idx][:, None, :], n_trials, axis=1)
+            ii = np.repeat(np.arange(idx.size), n_trials)
+            cand[ii, np.tile(np.arange(n_trials), idx.size), bits.ravel()] ^= 1
+            fc = land.fitness(cand.reshape(-1, n)).reshape(idx.size, n_trials)
+            best = fc.argmax(1)
+            fb = fc[np.arange(idx.size), best]
+            better = fb > f[idx]
+            newX[idx[better]] = cand[np.arange(idx.size), best][better]
+            newf[idx[better]] = fb[better]
 
         X, f = newX, newf
+        packed[t] = np.packbits(X, axis=1)
         state_bins[t] = _fbin(f)
         mean_f[t], max_f[t] = f.mean(), f.max()
         div[t] = _diversity(X)
@@ -111,4 +153,6 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
     s = state_bins[:-1].ravel()
     i_mem = _mi(s, signal_bins[:-1].ravel(), N_FBINS, N_FBINS + 1)
     i_pred = _mi(s, signal_bins[1:].ravel(), N_FBINS, N_FBINS + 1)
-    return RunResult(mean_f, max_f, div, nu, i_mem, i_pred, i_mem - i_pred, t_conv)
+    visited = float(np.mean([np.unique(packed[:, i, :], axis=0).shape[0] for i in range(m)]))
+    return RunResult(mean_f, max_f, div, nu, i_mem, i_pred, i_mem - i_pred, t_conv,
+                     float(changed_frac.mean()), visited)

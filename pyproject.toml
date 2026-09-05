@@ -11,3 +11,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["critpop"]
+
+[tool.uv.sources]
+sever = { git = "https://github.com/Larkooo/sever" }
+
+[dependency-groups]
+dev = [
+    "sever",
+]

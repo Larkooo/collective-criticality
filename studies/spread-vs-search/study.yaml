@@ -2,128 +2,213 @@ slug: spread-vs-search
 title: The optimum is set by spread rate against local search rate, not by a transition
 created: 2026-09-05
 exploratory: false
-
 theory:
   name: spread-vs-search
   version: 2
   supersedes: optimum-at-transition@1
-  statement: |
-    In copy-or-climb populations on rugged landscapes, collective performance is maximised at the
+  statement: 'In copy-or-climb populations on rugged landscapes, collective performance is maximised at the
+
     connectivity where the time for a superior solution to spread across the population is
+
     comparable to the time for an isolated lineage to exhaust its local search. The optimum
+
     therefore lies inside the connected phase, and its location is set by the ratio of spread
+
     rate to local search rate: it moves to higher connectivity when local search is faster, it
+
     does not move with the ruggedness of the landscape, and any two dials that set the spread
+
     rate (graph connectivity, copy noise) give the same performance at the same spread rate.
-  formal: |
-    Island model: G islands of size N/G, complete within an island; each agent observes one
+
+    '
+  formal: 'Island model: G islands of size N/G, complete within an island; each agent observes one
+
     random agent on another island with probability m per step. Spread time across islands
+
     T_spread ~ G^2 / (m N). Local search exhaustion time T_search ~ n / (n_trials * q), with q
+
     the probability that a random flip improves. Setting T_spread = T_search gives m*
+
     proportional to n_trials and independent of K to first order (K enters through q and the
+
     number of local optima, which set the height of the peak, not its location).
+
     Measured spread rate r = mean over steps of the fraction of agents that adopted a
-    neighbour's solution different from their own. The theory says performance = f(r / s) with
+
+    neighbour''s solution different from their own. The theory says performance = f(r / s) with
+
     s the local search rate, so curves plotted against r / n_trials collapse.
+
     Entailed by the setup, not counted: some copying beats none.
-  scope: |
-    Copy-or-climb agents, N = 100, NK landscapes with n = 20 and K in {2, 6, 12}, island
+
+    '
+  scope: 'Copy-or-climb agents, N = 100, NK landscapes with n = 20 and K in {2, 6, 12}, island
+
     topology with G = 10, synchronous updates, 500 steps, n_trials in {1, 2, 4}.
+
+    '
   prior_credence: 0.4
-
 alternatives:
-  - id: H_struct
-    statement: |
-      The optimum's location is a property of the communication structure alone (in the first
-      study, the percolation scale of the random graph). It does not move when the local search
-      rate changes.
-  - id: H_K
-    statement: |
-      The optimum's location depends on the ruggedness of the landscape.
-  - id: H_null
-    statement: |
-      In the island topology there is no interior optimum; performance is monotone in m.
+- id: H_struct
+  statement: 'The optimum''s location is a property of the communication structure alone (in the first
 
+    study, the percolation scale of the random graph). It does not move when the local search
+
+    rate changes.
+
+    '
+- id: H_K
+  statement: 'The optimum''s location depends on the ruggedness of the landscape.
+
+    '
+- id: H_null
+  statement: 'In the island topology there is no interior optimum; performance is monotone in m.
+
+    '
 predictions:
-  - id: P1
-    statement: The optimal cross-island observation rate m* increases with local search speed.
-    critical: true
-    pass_if: m*(n_trials = 4) / m*(n_trials = 1) >= 1.5 for at least 2 of the 3 values of K, and >= 1.0 for all 3
-    fail_if: m*(n_trials = 4) / m*(n_trials = 1) <= 1.1 for at least 2 of the 3 values of K
-    p_pass_if_true: 0.8
-    p_pass_if_false: 0.2
-    discriminates: [H_struct]
-    outcome: null
-    evidence: null
-  - id: P2
-    statement: An interior optimum in m exists in the island topology.
-    critical: true
-    pass_if: for K = 6 and K = 12 at n_trials = 1, the maximum final mean fitness over 0 < m < 1 exceeds the values at both m = 0 and m = 1 by at least 0.005 (units of the global optimum)
-    fail_if: for K = 6 or K = 12 at n_trials = 1, the maximum is at m = 0 or m = 1, or exceeds both endpoints by less than 0.002
-    p_pass_if_true: 0.9
-    p_pass_if_false: 0.3
-    discriminates: [H_null]
-    outcome: null
-    evidence: null
-  - id: P3
-    statement: The optimum's location does not depend on ruggedness.
-    critical: false
-    pass_if: at n_trials = 1, max over K of m* divided by min over K of m* is at most 1.5
-    fail_if: at n_trials = 1, that ratio is at least 3
-    p_pass_if_true: 0.8
-    p_pass_if_false: 0.4
-    discriminates: [H_K]
-    outcome: null
-    evidence: null
-  - id: P4
-    statement: Connectivity and copy-noise temperature give the same performance at the same measured spread rate.
-    critical: false
-    pass_if: at n_trials = 1, for every K, the temperature sweep's range of r covers at least 50% of the m sweep's range of r, and the mean absolute difference between the temperature sweep's final mean fitness and the m sweep's final mean fitness interpolated at the same r is below 0.005
-    fail_if: coverage is at least 50% for every K and the mean absolute difference exceeds 0.01 for any K
-    p_pass_if_true: 0.6
-    p_pass_if_false: 0.2
-    discriminates: [H_struct]
-    outcome: null
-    evidence: null
-  - id: P5
-    statement: Performance curves for different local search rates collapse when plotted against spread rate divided by search rate.
-    critical: false
-    pass_if: for each K, the across-n_trials spread of final mean fitness on a common log grid of x = r / n_trials is at most 50% of the spread on a common log grid of x = r
-    fail_if: for at least 2 of the 3 values of K, the rescaled spread is at least 80% of the unrescaled spread
-    p_pass_if_true: 0.5
-    p_pass_if_false: 0.15
-    discriminates: [H_struct]
-    outcome: null
-    evidence: null
+- id: P1
+  statement: The optimal cross-island observation rate m* increases with local search speed.
+  critical: true
+  pass_if: m*(n_trials = 4) / m*(n_trials = 1) >= 1.5 for at least 2 of the 3 values of K, and >= 1.0 for all 3
+  fail_if: m*(n_trials = 4) / m*(n_trials = 1) <= 1.1 for at least 2 of the 3 values of K
+  p_pass_if_true: 0.8
+  p_pass_if_false: 0.2
+  discriminates:
+  - H_struct
+  outcome: inconclusive
+  evidence: 'results/study2/summary.md, m* table. Ratios m*(4)/m*(1) = 4.0, 6.3, 0.53 for K = 2, 6, 12. Two of three
+    are >= 1.5 but K = 12 is below 1.0, so the pass clause fails; fewer than two are <= 1.1, so the fail clause
+    fails. Bootstrap 90% intervals on the ratio are [1.1, 23], [0.4, 6.5], [0.03, 43]: the estimator cannot locate
+    m* on the plateau (results/study2/perf_vs_m.png).'
+- id: P2
+  statement: An interior optimum in m exists in the island topology.
+  critical: true
+  pass_if: for K = 6 and K = 12 at n_trials = 1, the maximum final mean fitness over 0 < m < 1 exceeds the values
+    at both m = 0 and m = 1 by at least 0.005 (units of the global optimum)
+  fail_if: for K = 6 or K = 12 at n_trials = 1, the maximum is at m = 0 or m = 1, or exceeds both endpoints by less
+    than 0.002
+  p_pass_if_true: 0.9
+  p_pass_if_false: 0.3
+  discriminates:
+  - H_null
+  outcome: pass
+  evidence: 'results/study2/summary.md, interior optimum table. Gain of the best interior m over both endpoints:
+    +0.016 (K = 2), +0.026 (K = 6), +0.055 (K = 12), all above 0.005.'
+- id: P3
+  statement: The optimum's location does not depend on ruggedness.
+  critical: false
+  pass_if: at n_trials = 1, max over K of m* divided by min over K of m* is at most 1.5
+  fail_if: at n_trials = 1, that ratio is at least 3
+  p_pass_if_true: 0.8
+  p_pass_if_false: 0.4
+  discriminates:
+  - H_K
+  outcome: inconclusive
+  evidence: 'm* at n_trials = 1: 0.0053, 0.0032, 0.0031 for K = 2, 6, 12; max/min = 1.71, between the pass bound
+    1.5 and the fail bound 3.'
+- id: P4
+  statement: Connectivity and copy-noise temperature give the same performance at the same measured spread rate.
+  critical: false
+  pass_if: at n_trials = 1, for every K, the temperature sweep's range of r covers at least 50% of the m sweep's
+    range of r, and the mean absolute difference between the temperature sweep's final mean fitness and the m sweep's
+    final mean fitness interpolated at the same r is below 0.005
+  fail_if: coverage is at least 50% for every K and the mean absolute difference exceeds 0.01 for any K
+  p_pass_if_true: 0.6
+  p_pass_if_false: 0.2
+  discriminates:
+  - H_struct
+  outcome: inconclusive
+  evidence: 'results/study2/p4_spread_rate.png. Coverage of the r ranges is 0.00 for every K: the temperature sweep''s
+    r (0.003 to 0.009) lies entirely below the m sweep''s r (0.005 to 0.014). No interpolation was possible.'
+- id: P5
+  statement: Performance curves for different local search rates collapse when plotted against spread rate divided
+    by search rate.
+  critical: false
+  pass_if: for each K, the across-n_trials spread of final mean fitness on a common log grid of x = r / n_trials
+    is at most 50% of the spread on a common log grid of x = r
+  fail_if: for at least 2 of the 3 values of K, the rescaled spread is at least 80% of the unrescaled spread
+  p_pass_if_true: 0.5
+  p_pass_if_false: 0.15
+  discriminates:
+  - H_struct
+  outcome: inconclusive
+  evidence: results/study2/p5_collapse.png. Dividing r by n_trials moves the three curves onto disjoint x ranges,
+    so no common grid exists and the spread is undefined. Against r alone the curves overlap.
+analysis_plan: 'Code: critpop.model.run extended with islands, migration, n_trials, and two per-run
 
-analysis_plan: |
-  Code: critpop.model.run extended with islands, migration, n_trials, and two per-run
-  observables: copy rate r (mean over steps of the fraction of agents that adopted a neighbour's
+  observables: copy rate r (mean over steps of the fraction of agents that adopted a neighbour''s
+
   solution different from their own) and distinct solutions visited per agent. Defaults must
-  reproduce the first study's quick sweep bit for bit (checked against results/quick.npz).
+
+  reproduce the first study''s quick sweep bit for bit (checked against results/quick.npz).
+
   Sweep A (islands G = 10, T = 0): K in {2, 6, 12}; n_trials in {1, 2, 4}; m in {0} plus 13
+
   log-spaced values from 0.001 to 1; 4 landscapes x 6 seeds per point; 500 steps.
+
   Sweep B (complete graph, no islands, n_trials = 1): T in {0, 0.003, 0.01, 0.02, 0.05, 0.1,
+
   0.2, 0.5, 1}; same K, landscapes, seeds, steps.
+
   m* per (K, n_trials): argmax over m > 0 of final mean fitness with 3-point parabolic
+
   refinement in log10 m (critpop.analyze.peak). Robustness: bootstrap over landscapes (200
+
   resamples) gives a 90% interval on each m* ratio; reported, not used for pass or fail.
-  P4: interpolate sweep A's final mean fitness as a function of log10 r at sweep B's r values;
-  coverage = overlap of r ranges divided by sweep A's r range.
+
+  P4: interpolate sweep A''s final mean fitness as a function of log10 r at sweep B''s r values;
+
+  coverage = overlap of r ranges divided by sweep A''s r range.
+
   P5: spread = mean over a 30-point common log grid of the std across n_trials.
+
   Seeds are fixed from (K, landscape, seed, parameter, sweep id). One command:
+
   uv run python scripts/study2.py, which writes results/study2/summary.md and figures.
 
-kill_rule: |
-  If P1 fails, the spread-versus-search account of the optimum's location is abandoned. If P2
+  '
+kill_rule: 'If P1 fails, the spread-versus-search account of the optimum''s location is abandoned. If P2
+
   fails, the island topology does not reproduce the phenomenon and the scope claim is withdrawn.
+
   A successor must predict something that neither the first sweep nor this one already contains.
 
+  '
 results:
-  summary: null
-  exploratory: []
-
+  summary: '3672 runs. The interior optimum replicates in the island topology and is larger than in the random graph:
+    +0.016, +0.026, +0.055 over the better endpoint for K = 2, 6, 12 (random graph: +0.009 to +0.031). Performance
+    sits on a broad plateau from m = 0.001 to about 0.1, within noise of the maximum, with a steep rise from m =
+    0 and a slow decline toward m = 1. On that plateau the argmax estimator jumps by an order of magnitude between
+    resamples, so the critical prediction about where the optimum moves could not be decided either way. The measured
+    spread rate r, averaged over 500 steps, is dominated by transients and takes disjoint ranges for the two dials
+    and for the three search rates, so P4 and P5 could not be evaluated as designed.'
+  exploratory:
+  - finding: Plotted against r alone, the curves for n_trials = 1, 2, 4 overlap; divided by n_trials they separate
+      cleanly (p5_collapse.png, both rows). If anything, performance is a function of spread rate alone, and the
+      search-rate scaling in theory.formal is wrong.
+    next_test: 'Preregister the opposite of P5: collapse against r, not r / n_trials, with a design that has resolution.'
+  - finding: The optimum is a window, not a point. Performance is within 0.005 of its maximum over roughly two decades
+      of m.
+    next_test: Define the window (m range within 0.005 of the maximum) and test whether its edges, rather than an
+      argmax, move with search rate.
+  - finding: 'The formal balance T_spread = T_search misses by an order of magnitude here: at the observed m*, T_spread
+      is about 1/m = 100 to 300 steps while a 10-agent island exhausts local search in about 10 steps.'
+    next_test: Replace the balance argument with a count of independent lineages that finish local search before
+      being overwritten; derive m* from that and preregister it.
 review:
-  strongest_objection: null
-  confounds_checked: []
-  what_would_change_my_mind: null
+  strongest_objection: 'The critical test was not severe as designed. The performance curve is flat over two decades
+    of m, and with 4 landscapes x 6 seeds the argmax estimator of m* has bootstrap intervals spanning one to three
+    orders of magnitude, so no plausible effect size could have produced a clean pass or fail. The study could not
+    have refuted H_struct. The one pass, P2, is the prediction every rival except H_null makes, and H_null was not
+    a serious contender after the first sweep, so the credence increase from this study is bookkeeping. A second
+    flaw: with complete graphs inside islands of 10, each island already runs 10 parallel flips per step, so per-agent
+    n_trials may barely change the island-level search rate, which would hide the P1 effect even if the theory were
+    right.'
+  confounds_checked:
+  - bootstrap over landscapes for every m* ratio (reported in summary.md)
+  - three search rates and three ruggedness values
+  - sanity check that the model defaults still reproduce the first study bit for bit
+  what_would_change_my_mind: 'A design with resolution: at least 12 landscapes x 12 seeds, an m grid three times
+    finer across the plateau, an m* estimator that fits a smooth curve rather than taking an argmax, and a spread
+    rate measured before convergence. If in that design m* or the window edges fail to move by 1.5x with a 4x change
+    in search rate and the bootstrap interval excludes 1, the spread-versus-search account is dead.'

@@ -1,0 +1,33 @@
+status: inconclusive
+prior_credence: 0.4
+posterior_credence: 0.6667
+log10_evidence: 0.477
+predictions:
+- id: P1
+  critical: true
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  weak_test: false
+- id: P2
+  critical: true
+  outcome: pass
+  likelihood_ratio: 3.0
+  weak_test: false
+- id: P3
+  critical: false
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  weak_test: true
+- id: P4
+  critical: false
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  weak_test: false
+- id: P5
+  critical: false
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  weak_test: false
+missing: []
+computed_at: '2026-09-05T21:59:54+00:00'
+exploratory: false
