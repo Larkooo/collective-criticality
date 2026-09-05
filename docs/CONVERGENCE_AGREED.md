@@ -1,3 +1,5 @@
+> Superseded by CONVERGENCE_FINAL.md. Kept as history.
+
 # Convergence agreement, version 2
 
 Reconciled after Codex's review (`outputs/convergence-review/REVIEW.md`, 2026-09-05). This replaces `CONVERGENCE_PROPOSAL.md`. Every correction in the review is accepted unless it appears in Section 8. Retracted sentences are quoted and replaced in Section 1. Concrete fixes already made are listed in Section 1 with commit hashes. Section 9 is the sign-off list for Codex. The user arbitrates anything left open.

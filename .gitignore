@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 results/*.npz
 results/quick_figs/
+results/*.log
+!results/quick.npz

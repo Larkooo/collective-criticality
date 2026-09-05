@@ -1,65 +1,64 @@
-# critpop
+# collective-criticality
 
-A minimal, reproducible test of one claim: in a population of innovating agents, the
-amount of communication between them behaves like a temperature, and collective
-performance peaks near a phase transition of the population's diversity.
+When does communication help a population of agents search a rugged problem, and by how much? This repository holds a dynamical population model, two completed studies run under a preregistration method, an exploratory calculation that motivates the next study, and the agreed plan for a joint research line with a second agent (Codex). Nothing here is a confirmed theory. The status table says exactly what has and has not been shown.
 
-The model is Lazer and Friedman (2007): agents sit on a rugged NK landscape, copy a
-better neighbour when they see one, and otherwise hill-climb locally. Two dials are
-added. `p_link` is the density of the communication graph. `temperature` is optional
-noise in the copy decision. Everything else is held fixed.
+## Status
 
-## What is measured
+| Study | Theory | Verdict | One-line result |
+|---|---|---|---|
+| `studies/optimum-at-transition` | Performance peaks at the diversity phase transition | exploratory rejection (criteria written after the data) | The optimum sits about twice above the transition, which is graph percolation; ratio unchanged from N = 100 to 400 |
+| `studies/spread-vs-search` | Optimum set by spread rate against local search rate | inconclusive | Interior optimum replicates in the island topology, gains +0.016 to +0.055 of the global maximum; the location test could not be resolved on a two-decade plateau |
+| `results/exploratory/order_stat_check.md` | Order-statistic reference (not preregistered) | exploratory | Exact expected best-of-10 isolated island endpoints is within −0.013 to +0.020 of study-2 values; not all within the provisional 0.010 margin |
 
-Per run, at every step: mean fitness and best fitness relative to the exhaustively
-computed global optimum, diversity as mean pairwise Hamming distance, and the number
-of distinct solutions. Per run, once: the Still et al. (2012) decomposition of the
-information an agent's state holds about its best neighbour into memory, predictive
-power, and their difference, the non-predictive information. That last quantity is a
-coarse proxy (fitness bins, not full solutions) and is labelled as such.
+Next: Gate 0 of `docs/CONVERGENCE_FINAL.md`, a formal note under review in `docs/FORMAL_NOTE.md` and a literature pass, then a design pilot, then Study 3. No confirmatory result for the order-statistic account exists yet.
 
-Susceptibility is the run-to-run variance of an observable across seeds on the same
-landscape, averaged over landscapes, times the population size. Landscape-to-landscape
-variance is deliberately excluded.
+## The model
 
-## The three tests
+`critpop` implements copy-or-climb agents (Lazer and Friedman, 2007) on NK landscapes with the global optimum computed exhaustively. Each step an agent copies a strictly better neighbour if it sees one, otherwise tries single-bit flips and keeps an improvement. Dials: random-graph density, copy-noise temperature, island count and cross-island observation rate, flips per step. Recorded: mean and best fitness, diversity, distinct solutions, adoption and evaluation counts, cross-island contacts, ancestry lineages (a diagnostic, not a sample count), holders of the best candidate, and optionally the final population. Defaults reproduce the first study bit for bit; `scripts/regression.py` checks this.
 
-1. **Peak coincidence.** Does the connectivity that maximises mean fitness sit where
-   the susceptibility peaks? If yes, the optimum is at a transition. If no, it is just
-   an interior optimum, which Derex and Lazer already showed.
-2. **Data collapse.** Rescale connectivity by the transition location for each
-   ruggedness K. If diversity and performance curves for different K fall onto one
-   master curve, connectivity is a universal control parameter for this system.
-3. **Connectivity versus temperature.** Sweep explicit copy-noise temperature on a
-   complete graph and compare the (diversity, performance) curve it traces with the
-   one traced by the connectivity sweep. If they coincide, the two dials are
-   interchangeable, which is the precise version of "connectivity is a temperature".
+## Method
 
-Plus one measurement: how non-predictive information varies with connectivity and
-whether it tracks performance or susceptibility.
+All confirmatory work runs under [sever](https://github.com/Larkooo/sever): theory, rivals, predictions with numeric pass and fail criteria and three-outcome forecasts, analysis plan, and kill rule are hashed to a git commit before data; outcomes are recorded by applying the criteria literally; the verdict is computed. `CLAUDE.md` is the instruction set for an assistant working here.
 
-## Run
+```
+uv run sever status                     # every study, its state, outcomes recorded
+uv run sever check spread-vs-search     # preregistration intact?
+uv run sever lint                       # criteria, forecasts, weak tests
+uv run sever graveyard                  # what died, what killed it, what replaced it
+```
+
+## Reproduce
+
+Timings are for a 10-core Apple Silicon machine.
 
 ```
 uv sync
-uv run python -m critpop sweep --quick      # ~5 s smoke test
-uv run python -m critpop sweep             # full sweep, a few minutes on 10 cores
-uv run python -m critpop analyze           # figures and results/figures/summary.md
+uv run python scripts/regression.py                  # 5 s: model defaults unchanged
+uv run python -m critpop sweep && uv run python -m critpop analyze   # 3 min: study 1 sweep, figures, results/figures/summary.md
+uv run python scripts/finite_size.py                 # 25 s: results/finite_size.md
+uv run python scripts/study2.py                      # 2.5 min: study 2, results/study2/summary.md and figures
+uv run python scripts/exploratory_order_stat.py      # 1 min: results/exploratory/order_stat_check.md
 ```
 
-## Caveats
+Seeds are fixed from (K, landscape, seed, parameter, sweep id). `results/sweep.npz` is not committed (regenerable, 2.5 MB); everything else needed to check a number in a summary is.
 
-The diversity transition in this model is partly the percolation transition of the
-random graph, which happens at mean degree 1 regardless of the landscape. Whether the
-performance optimum tracks that threshold or moves with K is exactly what the collapse
-test asks. The information proxy uses ten fitness bins and pools over all time steps,
-so it is a qualitative measure. Nothing here involves language models. That is the
-next step, not this one.
+## Layout
+
+```
+critpop/                model, landscape, study-1 sweep and analysis
+scripts/                study 2, finite-size check, exploratory check, regression
+studies/<slug>/         study.yaml (frozen sections, outcomes, results, review), freeze.yaml, verdict.yaml, notes.md
+results/                figures, summaries, saved runs
+docs/CONVERGENCE_FINAL.md   the agreed joint plan with Codex; earlier versions kept as history
+docs/FORMAL_NOTE.md         draft formal note, Gate 0, under review
+docs/PAPER_OUTLINE.md       what the paper will be, and what does not exist yet
+docs/REVIEWING.md           how to review this repository and how to object
+```
+
+## Collaboration
+
+The finite-policy incentive benchmark by Codex (`collective-incentives` v0.1.0) is a preserved reference and control for the incentive axis. Its review of the first convergence proposal and its sign-off on the second are the reason several claims in earlier documents were retracted; the retractions are listed in `docs/CONVERGENCE_AGREED.md` Section 1 and `docs/CONVERGENCE_FINAL.md` Sections 2 and 3.
 
 ## References
 
-- Lazer, D. and Friedman, A. (2007). The network structure of exploration and exploitation. ASQ.
-- Derex, M., Perreault, C. and Boyd, R. (2018). Divide and conquer: intermediate levels of population fragmentation maximize cultural accumulation. Phil Trans R Soc B.
-- Kauffman, S. and Macready, W. (1995). Technological evolution and adaptive organizations. Complexity.
-- Still, S., Sivak, D., Bell, A. and Crooks, G. (2012). Thermodynamics of prediction. PRL.
-- Hidalgo, J. et al. (2014). Information-based fitness and the emergence of criticality in living systems. PNAS.
+Lazer and Friedman (2007) ASQ. Derex, Perreault and Boyd (2018) Phil Trans B. Kauffman and Macready (1995). Hartley and David (1954) Ann. Math. Stat. Frahnow and Kötzing (2018). Brown et al. (2024). Chen et al. (2021). Still, Sivak, Bell and Crooks (2012) PRL. Monderer and Shapley (1996).

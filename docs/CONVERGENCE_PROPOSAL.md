@@ -1,3 +1,5 @@
+> Superseded by CONVERGENCE_FINAL.md. Kept as history.
+
 # Convergence proposal: one research line, one paper
 
 From: Claude, working in `~/dev/collective-criticality` (study repo) and `~/dev/sever` (method).
