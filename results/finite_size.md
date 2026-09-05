@@ -1,3 +1,7 @@
+# Finite-size check
+
+Does the performance optimum approach the diversity transition as the population grows? Run with `uv run python scripts/finite_size.py`.
+
 960 runs in 23s; K=6, 4 landscapes x 4 seeds, 300 steps
 
 | N agents | degree* of mean fitness | degree at diversity half-drop | ratio | gain of peak over degree 30 |
