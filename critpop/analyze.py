@@ -31,7 +31,7 @@ def aggregate(meta, traj, sweep, key, horizons):
     vals = np.unique(meta[key][sel])
     H = len(horizons)
     out = {n: np.full((len(ks), len(vals), H), np.nan) for n in
-           ["perf", "perf_max", "div", "chi_perf", "chi_div", "n_unique"]}
+           ["perf", "perf_max", "div", "div_avg", "chi_perf", "chi_div", "n_unique"]}
     info = {n: np.full((len(ks), len(vals)), np.nan) for n in ["i_np", "i_mem", "i_pred", "t_conv", "frac_conv"]}
     for i, k in enumerate(ks):
         for j, v in enumerate(vals):
@@ -43,6 +43,7 @@ def aggregate(meta, traj, sweep, key, horizons):
                 out["perf"][i, j, h_i] = tr[:, h, MEAN_F].mean()
                 out["perf_max"][i, j, h_i] = tr[:, h, MAX_F].mean()
                 out["div"][i, j, h_i] = tr[:, h, DIV].mean()
+                out["div_avg"][i, j, h_i] = tr[:, :h + 1, DIV].mean()
                 out["n_unique"][i, j, h_i] = tr[:, h, NU].mean()
                 out["chi_perf"][i, j, h_i] = within_landscape_var(tr[:, h, MEAN_F], lands)
                 out["chi_div"][i, j, h_i] = within_landscape_var(tr[:, h, DIV], lands)
@@ -187,22 +188,29 @@ def analyze(path, figdir):
     lines.append("")
 
     # ---- 4. connectivity vs temperature: parametric (diversity, performance) curves ----
-    fig, axes = plt.subplots(1, len(ks), figsize=(3.2 * len(ks), 3.4), sharey=True)
+    fig, axes = plt.subplots(2, len(ks), figsize=(3.2 * len(ks), 6.4), sharey="row")
+    axes = np.atleast_2d(axes)
     lines.append("## Connectivity vs temperature (final horizon)\n")
-    lines.append("Mean distance from each temperature-sweep point to the nearest connectivity-sweep point in the (diversity, mean fitness) plane, per K. Small = the two dials trace the same curve.\n")
-    lines.append("| K | mean nearest distance | perf range (p sweep) | perf range (T sweep) |")
-    lines.append("|---|---|---|---|")
-    for i, (k, ax) in enumerate(zip(ks, np.atleast_1d(axes))):
-        dp, fp = P["div"][i, :, final], P["perf"][i, :, final]
-        dt, ft = Tg["div"][i, :, final], Tg["perf"][i, :, final]
-        ax.plot(dp, fp, "o-", ms=3, color="tab:blue", label="connectivity sweep (T=0)")
-        ax.plot(dt, ft, "s--", ms=3, color="tab:red", label="temperature sweep (p=1)")
-        ax.set_title(f"K={k}"); ax.set_xlabel("diversity")
-        pts_p = np.stack([dp, fp], 1); pts_t = np.stack([dt, ft], 1)
+    lines.append("Mean distance from each temperature-sweep point to the nearest connectivity-sweep point in the (diversity, mean fitness) plane, per K, using time-averaged diversity (how much exploration happened over the run). Small = the two dials trace the same curve.\n")
+    lines.append("| K | mean nearest distance | perf range (p sweep) | perf range (T sweep) | best T | best p |")
+    lines.append("|---|---|---|---|---|---|")
+    for i, k in enumerate(ks):
+        fp, ft = P["perf"][i, :, final], Tg["perf"][i, :, final]
+        for row, key in enumerate(["div_avg", "div"]):
+            dp, dt = P[key][i, :, final], Tg[key][i, :, final]
+            ax = axes[row, i]
+            ax.plot(dp, fp, "o-", ms=3, color="tab:blue", label="connectivity sweep (T=0)")
+            ax.plot(dt, ft, "s--", ms=3, color="tab:red", label="temperature sweep (p=1)")
+            ax.set_title(f"K={k}" if row == 0 else "")
+            ax.set_xlabel("time-averaged diversity" if row == 0 else "final diversity")
+        dp, dt = P["div_avg"][i, :, final], Tg["div_avg"][i, :, final]
+        pts_p, pts_t = np.stack([dp, fp], 1), np.stack([dt, ft], 1)
         okp, okt = np.isfinite(pts_p).all(1), np.isfinite(pts_t).all(1)
         d = np.sqrt(((pts_t[okt][:, None, :] - pts_p[okp][None, :, :]) ** 2).sum(-1)).min(1).mean()
-        lines.append(f"| {k} | {d:.4f} | {np.nanmin(fp):.3f} to {np.nanmax(fp):.3f} | {np.nanmin(ft):.3f} to {np.nanmax(ft):.3f} |")
-    np.atleast_1d(axes)[0].set_ylabel("mean fitness / global max"); np.atleast_1d(axes)[0].legend(fontsize=7)
+        bt, bp = Ts[int(np.nanargmax(ft))], ps[int(np.nanargmax(fp))]
+        lines.append(f"| {k} | {d:.4f} | {np.nanmin(fp):.3f} to {np.nanmax(fp):.3f} | {np.nanmin(ft):.3f} to {np.nanmax(ft):.3f} | {bt:g} | {bp:g} |")
+    axes[0, 0].set_ylabel("mean fitness / global max"); axes[1, 0].set_ylabel("mean fitness / global max")
+    axes[0, 0].legend(fontsize=7)
     fig.tight_layout(); fig.savefig(f"{figdir}/connectivity_vs_temperature.png", dpi=130); plt.close(fig)
     lines.append("")
 

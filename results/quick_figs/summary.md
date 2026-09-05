@@ -20,12 +20,12 @@ runs: 80, horizons: ['t=25', 't=50', 't=100', 't=149']
 
 ## Connectivity vs temperature (final horizon)
 
-Mean distance from each temperature-sweep point to the nearest connectivity-sweep point in the (diversity, mean fitness) plane, per K. Small = the two dials trace the same curve.
+Mean distance from each temperature-sweep point to the nearest connectivity-sweep point in the (diversity, mean fitness) plane, per K, using time-averaged diversity (how much exploration happened over the run). Small = the two dials trace the same curve.
 
-| K | mean nearest distance | perf range (p sweep) | perf range (T sweep) |
-|---|---|---|---|
-| 2 | 0.0065 | 0.949 to 0.987 | 0.946 to 0.964 |
-| 6 | 0.0183 | 0.867 to 0.923 | 0.877 to 0.953 |
+| K | mean nearest distance | perf range (p sweep) | perf range (T sweep) | best T | best p |
+|---|---|---|---|---|---|
+| 2 | 0.0072 | 0.949 to 0.987 | 0.946 to 0.964 | 0 | 0.03 |
+| 6 | 0.0184 | 0.867 to 0.923 | 0.877 to 0.953 | 1 | 0.03 |
 
 ## Non-predictive information (Still et al. 2012 proxy)
 
