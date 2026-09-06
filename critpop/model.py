@@ -13,9 +13,10 @@ hill-climb locally. This is the Lazer & Friedman (2007) model with two additions
 * `n_trials`    single-bit flips an exploring agent tries per step, adopting the best improving
                 one. 1 is the Lazer-Friedman rule. This is the local search rate dial.
 
-Per-agent fitness never decreases (an agent copies only a strictly better neighbour and keeps
-only an improving flip), so the population maximum is non-decreasing and the final population
-maximum equals the best fitness ever evaluated that improved anyone. best-found = max_f[-1].
+With temperature <= 0, per-agent fitness never decreases: copying and local updates accept
+only strict improvements. In that regime, the final population maximum equals the best search
+fitness encountered, including initialization and excluding diagnostic probes. Positive copy
+temperatures can accept worse neighbours, so their final maximum is not a best-ever archive.
 Ancestry (lineage labels inherited on copying) is recorded as a diagnostic. It is not a count
 of independent searches: selection removes roots after their search has contributed.
 
@@ -53,9 +54,10 @@ class RunResult:
     lineages: int = 0         # distinct ancestral lineages surviving at the end (ancestry, not fitness)
     lineage_eff: float = 0.0  # effective number of lineages, 1 / sum p_i^2
     contacts: int = 0         # cross-island observation events offered (islands mode)
-    best_holders: float = 0.0 # fraction of agents whose final genotype equals the best-found genotype
+    best_holders: float = 0.0 # fraction whose final genotype equals a selected final-best genotype
     adopt_before_complete: int = -1  # adoptions while the recipient still had an improving single flip (diagnostics only)
     adopt_after_complete: int = -1   # adoptions by a recipient already at a local optimum (diagnostics only)
+    holders_traj: np.ndarray | None = None  # per step, agents holding the genotype that ends as best-found
     final_f: np.ndarray | None = None
     final_X: np.ndarray | None = None
     final_lineage: np.ndarray | None = None
@@ -192,10 +194,12 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
     counts = np.bincount(lineage, minlength=m).astype(float)
     p_lin = counts[counts > 0] / m
     best_holders = float((X == X[int(f.argmax())]).all(1).mean())
+    holders_traj = (packed == packed[-1, int(f.argmax())][None, None, :]).all(2).sum(1).astype(np.int32)
     return RunResult(mean_f, max_f, div, nu, i_mem, i_pred, i_mem - i_pred, t_conv,
                      float(changed_frac.mean()), visited, n_evals, n_copies,
                      int((counts > 0).sum()), float(1.0 / (p_lin ** 2).sum()),
                      contacts, best_holders,
                      before_complete if diagnostics else -1, after_complete if diagnostics else -1,
+                     holders_traj,
                      f.copy() if return_state else None, X.copy() if return_state else None,
                      lineage.copy() if return_state else None)
