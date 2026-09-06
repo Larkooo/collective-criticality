@@ -11,7 +11,7 @@
 | Section | Content | Source | Exists? |
 |---|---|---|---|
 | 1 | Question, prior work, novelty statement | Gate 0 literature pass (Codex) | no |
-| 2 | Reference, bound, Control D identities, process assumptions A1 to A4 | `docs/FORMAL_NOTE.md` | draft, under review |
+| 2 | Reference, bound, Control D identities, explicit path-copy model and assumptions A1 to A4 | `docs/FORMAL_NOTE.md` | draft, under review |
 | 3 | Classical tests: Study 3, P-A, P1, P2, P3, Controls D and E, with grading | Gate 2 | no |
 | 3.1 | History: study 1 exploratory rejection, study 2 inconclusive, what they changed | `studies/`, `results/` | yes, as recorded |
 | 4 | Incentive axis: Study 4 with a reward-sensitive learner; potential-game proposition as background | Gate 3 (Codex) | no |

@@ -1,0 +1,86 @@
+{
+  "editorial_seed": 17764446679665605942,
+  "editorial_lenses": [
+    "measurement versus mechanism",
+    "replace abstract nouns with observable events",
+    "same summary, different outcome",
+    "donor and recipient counterfactuals",
+    "large-noise and boundary regimes",
+    "empty and zero-budget cases"
+  ],
+  "study_base_commit": "42079c348cd1ad3201ae264b6f76315b22dd04ff",
+  "status": "formal draft rewritten locally; no confirmatory run or preregistration created",
+  "tests": {
+    "sever_pytest": {
+      "passed": 18,
+      "seconds": 1.66
+    },
+    "historical_model_regression": {
+      "runs": 80,
+      "bit_for_bit": true
+    },
+    "formal_reference": {
+      "status": "passed",
+      "editorial_seed": 17764446679665605942,
+      "scope": "Mathematical and implementation checks, not confirmatory performance evidence",
+      "mathematical": {
+        "checks_passed": 130,
+        "stopping_counterexample": {
+          "actual": 0.6,
+          "incorrect_count_mixture": 0.55
+        },
+        "equal_marginal_continuations": {
+          "duplicate_max": 0.5,
+          "independent_max": 0.6
+        },
+        "path_copy_example": {
+          "isolated_best": 0.8,
+          "early_copy_best": 0.7,
+          "post_broadcast_roots": 1,
+          "post_broadcast_best": 0.8
+        }
+      },
+      "model_scope_witness": {
+        "temperature": 1.0,
+        "landscape_seed": 8,
+        "run_seed": 1,
+        "best_observed": 0.9905458823535004,
+        "final_best": 0.9437512271467831,
+        "zero_temperature_control_runs_passed": 10,
+        "interpretation": "Monotonicity requires the zero-temperature elitist restriction."
+      }
+    },
+    "study2_freeze": "intact",
+    "lint": {
+      "errors": 0,
+      "historical_warnings": 14
+    },
+    "model_executable_AST_unchanged": true,
+    "session_copies_match": true
+  },
+  "commands": [
+    "/Users/nas/dev/sever/.venv/bin/python -m pytest -q",
+    "python scripts/regression.py",
+    "python scripts/formal_checks.py --model-checks",
+    "sever check spread-vs-search",
+    "sever lint"
+  ],
+  "source_sha256": {
+    "docs/FORMAL_NOTE.md": "76b3ea3a1a2118adc289f66c8efb241a09044dae4468a7528406b25bf74f2981",
+    "docs/FORMAL_NOTE_REVIEW.md": "e9f9763f8b1620445ad6228655cea5e1dd061cbeb096feb9c7e2fe419785a5f7",
+    "docs/CONVERGENCE_FINAL.md": "7bfb3e52cfe79152e071e74560726ac89cbd107a33a90b6a96258f08492b8d14",
+    "docs/PAPER_OUTLINE.md": "f8abbc6e480e7db7eaa22af86c9f174d79b9067b8fb7be3790c6cf03c0aaecfa",
+    "docs/REVIEWING.md": "485f2c1b0b59f807d48726042862d86147f625235189e2f87847e0f2707347f9",
+    "critpop/model.py": "c6f4398cf38c3e0510f1c989190d4af51dc4c253b5bf0697509a468d71022bd3",
+    "scripts/formal_checks.py": "af26f088f5967b2087e8603aad0135cea80193d2679c8603b10630c3594375e9",
+    "studies/spread-vs-search/study.yaml": "b3cc6b1c08aef3ffa0e34ea898caf1c2858265638be30db223ec128ef69d44f7",
+    "studies/optimum-at-transition/study.yaml": "0e5c5324d45e723bcc9a0facedd0abc8835b111ff311967840b15df8cccb89fc"
+  },
+  "limits": [
+    "Reference-property checks are not empirical validation.",
+    "R_copy is a coarse island approximation, not the full agent simulator.",
+    "No full path-calibration or design-power study has run.",
+    "Gate 0 novelty review remains broader than this formal-note review.",
+    "All revisions are local, uncommitted, and unpushed."
+  ]
+}

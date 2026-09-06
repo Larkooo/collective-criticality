@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "editorial_seed": 17764446679665605942,
+  "scope": "Mathematical and implementation checks, not confirmatory performance evidence",
+  "mathematical": {
+    "checks_passed": 130,
+    "stopping_counterexample": {
+      "actual": 0.6,
+      "incorrect_count_mixture": 0.55
+    },
+    "equal_marginal_continuations": {
+      "duplicate_max": 0.5,
+      "independent_max": 0.6
+    },
+    "path_copy_example": {
+      "isolated_best": 0.8,
+      "early_copy_best": 0.7,
+      "post_broadcast_roots": 1,
+      "post_broadcast_best": 0.8
+    }
+  },
+  "model_scope_witness": {
+    "temperature": 1.0,
+    "landscape_seed": 8,
+    "run_seed": 1,
+    "best_observed": 0.9905458823535004,
+    "final_best": 0.9437512271467831,
+    "zero_temperature_control_runs_passed": 10,
+    "interpretation": "Monotonicity requires the zero-temperature elitist restriction."
+  }
+}

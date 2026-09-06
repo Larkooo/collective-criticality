@@ -31,7 +31,9 @@ Every number in `results/figures/summary.md`, `results/finite_size.md`, `results
 
 ## Attack the plan
 
-`docs/FORMAL_NOTE.md` Section 4 states the assumptions A1 to A4 that connect interacting search to the reference distribution. A3 is load-bearing. If you can construct a case where A1 to A4 hold and the prediction in that section fails, or a case where the planned Control E cannot detect a violation of A3, that is the most valuable review this project can receive right now.
+`docs/FORMAL_NOTE.md` Section 4 defines the path-copy reference and separates its exact properties from four assumptions connecting it to the agent population. Review calibration, island aggregation, continuation coupling, and contact approximation separately. A completed-search count is not assumed to determine performance. Control E tests a randomized model residual; attribution to continuation requires its other controls to hold.
+
+Run `uv run python scripts/formal_checks.py --model-checks` for the mathematical examples, reference-property checks, and temperature-scope witness. These are implementation checks, not confirmatory experimental evidence. `docs/FORMAL_NOTE_REVIEW.md` records the Gate 0 rewrite and the four open-point decisions.
 
 ## How to object
 

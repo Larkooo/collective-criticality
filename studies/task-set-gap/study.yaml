@@ -1,0 +1,160 @@
+slug: task-set-gap
+title: The optimum of adaptive communication sits at a task-determined distance from the propagation transition, on the feasible side
+created: 2026-09-06
+exploratory: false
+
+theory:
+  name: task-set-gap
+  version: 1
+  supersedes: null
+  statement: |
+    In a system whose units propagate information with multiplier sigma (transition at sigma = 1), a
+    policy that maximises delivered value minus propagation cost has its optimum at a positive distance
+    from the transition, on the side that makes the task feasible. When the objective is a rate (value
+    per unit time or cost) and the task fixes a propagation depth D, the gap scales as a power law
+    D^(-alpha) with alpha = 1 and a constant of order one fixed by the objective's shape. When the
+    objective is a one-shot probability with a cost per attempt, the gap is set by cost alone and is
+    independent of depth (alpha = 0). Criticality is the limit D -> infinity of the rate case, never the
+    optimum at finite depth with positive cost.
+  formal: |
+    docs/GAP_THEORY.md, Sections 1 to 3. Derived: one-shot branching delta* = sqrt(lambda v / I0),
+    independent of L, with a silence threshold; throughput branching delta* = x*/L, x* ~ 1.59;
+    reservoir recall delta* ~ 1/(2k) to first order; time-limited island coverage
+    epsilon* = (ln G + ln(QT/c'))/T; component-limited random-graph coverage alpha = 0.
+    Entailed by the exact branching process and reported as derivation checks, not counted as
+    predictions: the branching-process exponents and constants (already computed at the design stage).
+    Assumed and tested here: that the reservoir with input noise and the island population realise the
+    rate case, and that the random graph realises the one-shot case.
+  scope: |
+    Three systems. (1) Copy-or-climb population, N = 100, NK landscapes with n = 20 and K = 6, island
+    topology with G in {5, 10, 20, 50} and cross-island observation rate m as the dial, horizons T in
+    {250, 500, 1000, 2000, 4000}; the same agents on an Erdos-Renyi graph with density as the dial.
+    (2) Echo-state network, n = 200 (n = 400 exploratory), density 0.1, tanh units, delayed-recall
+    task at delays k in {1, 2, 4, 8, 16, 32}, input noise in {0.001, 0.01, 0.1}, spectral radius as
+    the dial. (3) Exact subcritical Poisson branching process, reported as a derivation check.
+    Claims are about these systems. Brains, markets, and language-model populations are out of scope.
+  prior_credence: 0.5
+
+alternatives:
+  - id: H_crit
+    statement: |
+      Criticality is optimal: the measured gap at the optimum is zero within estimator resolution in at
+      least one system with demonstrably positive cost.
+  - id: H_struct
+    statement: |
+      The gap is a property of the system's structure alone and does not depend on the depth the task
+      fixes: alpha near 0 in the rate cases as well.
+  - id: H_noform
+    statement: |
+      Gaps are positive but their exponents and constants bear no relation to the derived values; each
+      system has its own unrelated optimum.
+
+predictions:
+  - id: P-B1
+    statement: In the island population, the left edge of the mean-agent performance window moves toward the transition as the horizon grows, as a power law with exponent near 1.
+    critical: true
+    pass_if: at every T in {250, 500, 1000, 2000, 4000}, the gap sigma - 1 at the left window edge (smallest m within 0.005 of the grid maximum) has a 90% bootstrap interval over landscapes excluding 0; the gaps decrease monotonically in T; and the fitted exponent of gap against T lies in [0.7, 1.3]
+    fail_if: any gap interval includes 0, or the gaps are not monotone decreasing in T, or the exponent lies outside [0.4, 1.6]
+    p_pass_if_true: 0.6
+    p_pass_if_false: 0.05
+    p_fail_if_true: 0.15
+    p_fail_if_false: 0.7
+    discriminates: [H_crit, H_struct]
+    outcome: null
+    evidence: null
+  - id: P-B2
+    statement: The island gap times the horizon stays within the band predicted by time-limited coverage.
+    critical: false
+    pass_if: gap x T lies in [ln 10, 15 ln 10] = [2.3, 34.5] at every T in the grid
+    fail_if: gap x T lies outside that band at 2 or more of the 5 horizons
+    p_pass_if_true: 0.7
+    p_pass_if_false: 0.2
+    p_fail_if_true: 0.1
+    p_fail_if_false: 0.5
+    discriminates: [H_noform]
+    outcome: null
+    evidence: null
+  - id: P-B3
+    statement: On the random graph, where coverage is limited by the giant component rather than by time, the edge gap does not scale with the horizon, while the island gap does.
+    critical: false
+    pass_if: P-B1 passes and the fitted exponent of the random-graph edge gap against T lies in [-0.4, 0.4]
+    fail_if: the random-graph exponent exceeds 0.7
+    p_pass_if_true: 0.5
+    p_pass_if_false: 0.15
+    p_fail_if_true: 0.15
+    p_fail_if_false: 0.5
+    discriminates: [H_noform, H_struct]
+    outcome: null
+    evidence: null
+  - id: P-B5
+    statement: At fixed horizon T = 1000, the island gap increases with ln G.
+    critical: false
+    pass_if: the slope of gap against ln G over G in {5, 10, 20, 50} has a 90% bootstrap interval over landscapes lying entirely above 0
+    fail_if: that interval lies entirely below 0
+    p_pass_if_true: 0.6
+    p_pass_if_false: 0.25
+    p_fail_if_true: 0.15
+    p_fail_if_false: 0.4
+    discriminates: [H_struct]
+    outcome: null
+    evidence: null
+  - id: P-C1
+    statement: In the reservoir, the gap between the measured propagation multiplier at the recall optimum and 1 is positive and falls with the recall delay as a power law with exponent between one half and one.
+    critical: true
+    pass_if: at every noise level in {0.001, 0.01, 0.1}, over the feasible delays (maximum R^2 over the spectral-radius grid at least 0.5; at least 3 feasible delays), every gap has a 90% bootstrap interval over seeds excluding 0, the gaps decrease monotonically in k, and the fitted exponent lies in [0.5, 1.0]
+    fail_if: at any noise level a gap interval includes 0, or the gaps are not monotone decreasing in k, or the exponent lies below 0.3 or above 1.2
+    p_pass_if_true: 0.65
+    p_pass_if_false: 0.05
+    p_fail_if_true: 0.15
+    p_fail_if_false: 0.8
+    discriminates: [H_crit, H_struct]
+    outcome: null
+    evidence: null
+  - id: P-C2
+    statement: The reservoir constant gap x k decreases with the noise level. This contradicts the first-order derivation and was suggested by the design pilot; it is registered as a prediction so that the cost model is tested rather than adjusted after the fact.
+    critical: false
+    pass_if: the mean of gap x k over feasible delays is strictly decreasing across the noise levels 0.001, 0.01, 0.1
+    fail_if: it is strictly increasing
+    p_pass_if_true: 0.5
+    p_pass_if_false: 0.3
+    p_fail_if_true: 0.2
+    p_fail_if_false: 0.3
+    discriminates: [H_noform]
+    outcome: null
+    evidence: null
+
+analysis_plan: |
+  One command: uv run python scripts/study_gap.py (seed base 4242; the design pilots used 7777).
+  Population: 8 landscapes x 6 seeds per grid point; m grid 25 log-spaced points from 1e-4 to 0.316;
+  p grid 25 points from 0.0063 to 0.316; final mean-agent fitness normalised by the exhaustive global
+  maximum. Left window edge: smallest dial value whose mean performance is within 0.005 of the grid
+  maximum, refined by log-linear interpolation between the bracketing grid points. sigma at the edge:
+  the growth factor of the number of agents holding the genotype that ends as best-found, from a
+  least-squares fit of log count against time from first appearance to half coverage, averaged over
+  runs at the bracketing grid points with log-linear weights. Gap = sigma - 1. Intervals: 200
+  bootstrap resamples over landscapes, 5th and 95th percentiles; the same for the exponent (least
+  squares of log gap on log T) and for the ln G slope. Reservoir: 8 seeds per (delay, noise, radius),
+  31 radii from 0.5 to 1.25; performance is test R^2 of ridge recall of the input k steps back;
+  sigma is exp of the largest Lyapunov exponent measured from a renormalised perturbation along the
+  driven trajectory over 400 steps; the optimum radius is the grid argmax of mean R^2; intervals from
+  200 bootstrap resamples over seeds. Feasibility floor: maximum R^2 >= 0.5. Exploratory: n = 400
+  at noise 0.01 with 4 seeds, reported only. Derivation checks on the exact branching process are
+  reported and are not predictions. Outcomes are computed by the script and printed under
+  "Outcomes, applied literally". Robustness reported: leave-one-landscape-out ranges; best-found
+  left edge alongside the mean-agent edge. Runtime about 25 minutes on 10 cores.
+
+kill_rule: |
+  If P-B1 or P-C1 fails, the claim that a rate objective yields a gap scaling as D^(-1) in these
+  systems is abandoned. A successor must predict a functional form the confirmatory data do not
+  already display. If the reservoir constant behaves as P-C2 predicts, the reservoir cost model in
+  docs/GAP_THEORY.md Section 2c is incomplete and must be rederived with interference before any
+  further reservoir prediction is made.
+
+results:
+  summary: null
+  exploratory: []
+
+review:
+  strongest_objection: null
+  confounds_checked: []
+  what_would_change_my_mind: null
