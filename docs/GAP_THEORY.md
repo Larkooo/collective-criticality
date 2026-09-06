@@ -16,18 +16,33 @@ with the sign fixed by which side of the transition makes the task feasible and 
 
 ## 2. Subcritical side: delivery to depth L
 
-Assumptions. A Galton–Watson branching process with offspring mean σ < 1 and gap δ = 1 − σ. A message is delivered if the cascade it starts survives to depth L. Cost is a power of the expected cascade size.
+**Record of a correction.** The first draft of this section assumed drift-dominated survival, P(reach L) ≈ e^(−δL), and derived δ* ∝ L^(−1/(β+1)). An exact evaluation of the branching process before any pilot run showed the optimum barely moves with L (0.038 at L = 4, 0.037 at L = 16 for a bandwidth cost of 0.001, then silence at L = 64). The reason: at the optimum, δL is small and survival is fluctuation-dominated, not drift-dominated. The derivation below replaces the old one. The correction happened at the design stage and before any preregistration, which is what the design stage is for.
 
-Delivery. For a subcritical branching process the survival probability to depth L is asymptotically c₁σ^L, and for small δ, σ^L = exp(L ln(1 − δ)) ≈ e^(−δL). Value V = I₀ e^(−δL).
+Assumptions. A Galton–Watson branching process with offspring mean σ = 1 − δ < 1 and offspring variance v. Near the transition the survival probability to depth L is
 
-Cost. Expected total size is Σ_t σ^t = 1/δ (bandwidth, β = 1). Variance of total size for fixed offspring variance v is v/δ³ (instability, β = 3). Write C = c δ^(−β).
+    P_L(δ) ≈ 2δ / (v (e^(δL) − 1)),
 
-Optimum. J(δ) = I₀ e^(−δL) − c δ^(−β). Setting J′ = 0 with x = δL gives x^(β+1) e^(−x) = cβ L^β / I₀. The left side is bounded above by ((β+1)/e)^(β+1). Two regimes follow.
+which is 2/(vL) as δ → 0 (the critical law) and (2δ/v) e^(−δL) for δL ≫ 1 (the drift law). Expected cascade size is 1/δ; size variance is v/δ³.
 
-- Cheap communication, cβL^β/I₀ small: x is small and δ* = (cβ/I₀)^(1/(β+1)) · L^(−1/(β+1)). So α = 1/(β+1): one half for bandwidth cost, one quarter for variance cost. At the optimum, delivery probability e^(−x) is near one; the gap is set by cost, not by failure to deliver.
-- Expensive communication, cβL^β/I₀ > ((β+1)/e)^(β+1): no interior optimum; the best policy is not to transmit. This is the "should I transmit at all" threshold, and it is a prediction, not a defect.
+**2a. One-shot delivery with a cost per attempt.** J(δ) = I₀ P_L(δ) − λ/δ. For δL ≪ 1, P_L ≈ (2/(vL))(1 − δL/2), so dV/dδ ≈ −I₀/v, a constant independent of L. Balancing against the cost slope λ/δ² gives
 
-Also: δ* → 0 only as L → ∞ at fixed cost, or as c → 0. Criticality is the limit, never the optimum, for finite L and positive cost.
+    δ* = √(λ v / I₀),   independent of L.
+
+Approaching the transition does not help a single cascade reach far, because near criticality survival is limited by early extinction, not by drift. The deliverable value 2I₀/(vL) falls with L until it no longer covers the cost λ/δ*, beyond L_silence ≈ 2/(v δ*): the optimal policy is not to transmit. So α = 0, the gap scales as the square root of the cost, and there is a range threshold for silence. All three appear in the exact evaluation.
+
+**2b. Throughput: cost per delivered message.** If attempts repeat until delivery, or many sources send, the relevant objective is the expected cost per delivered message, E[size]/P_L = v (e^(δL) − 1)/(2δ²) in the near-critical approximation. Minimizing over δ gives x e^x = 2(e^x − 1) with x = δL, so
+
+    δ* = x*/L,   x* ≈ 1.59,   α = 1,
+
+independent of the cost weight, which only scales the objective. Here the gap does shrink with range, as 1/L, with a dimensionless constant fixed by the objective's shape.
+
+**2c. Reservoir with input noise (delayed recall at depth k).** The component of the state carrying the input from k steps ago decays as ρ^k = e^(−δk) with δ = 1 − ρ, while accumulated noise power scales as Σ ρ^(2t) = 1/(1 − ρ²) ≈ 1/(2δ). Recall quality is monotone in the signal-to-noise ratio ∝ δ e^(−2δk), maximized at
+
+    δ* = 1/(2k),   α = 1,
+
+independent of the noise level to first order; noise sets the achieved quality, not the location of the optimum. Nonlinearity and interference from other delays can shift this, which is what the pilot measures.
+
+**The general form.** When the objective is a rate, value per unit time or per unit cost, and depth enters through an exponential decay e^(−δD), the optimum satisfies gap × depth = a constant of order one set by the objective's shape (1.59 for branching throughput, 1/2 for reservoir recall, ln G plus logarithmic terms for time-limited coverage in Section 3a). When the objective is a one-shot probability with a cost per attempt, the gap is set by cost alone and does not depend on depth. Both give a positive gap, and δ* → 0 only as D → ∞ in the rate case.
 
 ## 3. Supercritical side: coverage of a population
 
@@ -56,7 +71,9 @@ The contrast between 3a and 3b is the sharpest cheap test in the program: the sa
 | Item | Status |
 |---|---|
 | Survival asymptotics, expected size 1/δ, variance v/δ³ for subcritical Galton–Watson | standard, cited |
-| δ* = (cβ/I₀)^(1/(β+1)) L^(−1/(β+1)) in the cheap regime; silence regime beyond the bound | derived here under the stated forms of V and C |
+| One-shot: δ* = √(λv/I₀), independent of L, with silence beyond L ≈ 2/(vδ*) | derived here from the near-critical survival law; checked against the exact generating function |
+| Throughput: δ* = x*/L with x* ≈ 1.59 | derived here from the near-critical survival law; checked against the exact generating function |
+| Reservoir: δ* = 1/(2k), noise-independent to first order | derived here from a linear signal-to-noise argument; the pilot tests it under tanh nonlinearity |
 | ε* = (ln G + ln(QT/c′))/T for time-limited coverage | derived here under the exponential-saturation form of C(ε, T) |
 | α = 0 for component-limited coverage | follows from V having no T dependence; the location 2 to 4 assumes a cost rising in σ |
 | That a reservoir with input noise realizes the β = 1 case | assumed; the study tests it |
@@ -66,9 +83,9 @@ The contrast between 3a and 3b is the sharpest cheap test in the program: the sa
 ## 6. Predictions and rivals, for the study file
 
 - P1, critical. In every system and at every D in the grid, the measured gap at the optimum is positive with an interval excluding zero.
-- P2, critical. The fitted exponent of gap against D matches the prediction per system: 1/2 and 1/4 for the two branching-process cost models, 1 for the island model in T, 1/2 for the reservoir with input noise, within a tolerance fixed at the design pilot.
-- P3, non-critical. Cost direction per side: gap increases with cost on the subcritical side (branching process, reservoir noise); gap decreases with an imposed per-adoption cost on the supercritical side.
-- P4, non-critical. The random-graph optimum does not move with T (α within tolerance of 0) while the island optimum does.
+- P2, critical. The exponent of gap against depth is α = 1 for rate objectives (branching throughput in L, reservoir recall in k, island coverage in T) and α = 0 for one-shot objectives (branching one-shot in L, component-limited random-graph coverage in T), within a tolerance fixed at the design pilot. The rivals do not predict this dichotomy.
+- P3, non-critical. The gap-times-depth constants match the derived values within a stated tolerance: 1.59 (branching throughput), 1/2 (reservoir), and ln G plus a logarithmic term (islands).
+- P4, non-critical. Cost dependence per case: one-shot branching gap ∝ √λ; throughput branching gap independent of the cost weight; reservoir gap independent of noise level to first order; island gap decreasing logarithmically with an imposed per-adoption cost.
 - P5, non-critical. The island gap at fixed T increases with ln G.
 
-Rivals. Criticality is optimal (gap = 0 within resolution). Structure only (gap independent of D everywhere). No shared form (gaps positive but exponents unrelated to the predictions). Silence (for the cost weights used, the optimum is not to communicate; a regime, not a refutation, but the study must land in the cheap regime for P1 and P2 to apply).
+Rivals. Criticality is optimal (gap = 0 within resolution). Structure only (gap independent of D everywhere, including the rate cases). No shared form (gaps positive but exponents and constants unrelated to the derivations). Silence (for the cost weights used, the optimum is not to communicate; a regime the design must avoid for P1 and P2 to apply, and a prediction in its own right).
