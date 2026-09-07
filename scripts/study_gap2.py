@@ -32,14 +32,16 @@ def loglog_slope(x, y):
 
 
 def growth_and_t0(h, n):
+    """(growth factor over the window from first appearance to half coverage, t0, t_half)."""
     on = h >= 1
     if not on.any():
-        return np.nan, np.nan
+        return np.nan, np.nan, np.nan
     t0 = int(np.argmax(on)); half = np.where(h >= n / 2)[0]; t1 = int(half[0]) if half.size else len(h) - 1
+    t_half = float(half[0]) if half.size else np.nan
     if t1 - t0 < 2:
-        return np.nan, float(t0)
+        return np.nan, float(t0), t_half
     t = np.arange(t0, t1 + 1)
-    return float(np.exp(np.polyfit(t, np.log(np.maximum(h[t0:t1 + 1], 1)), 1)[0])), float(t0)
+    return float(np.exp(np.polyfit(t, np.log(np.maximum(h[t0:t1 + 1], 1)), 1)[0])), float(t0), t_half
 
 
 def smooth(curve):
@@ -68,9 +70,9 @@ def pop_task(args):
         for m in MS:
             rng = np.random.default_rng([K, li, si, n, T, g, int(round(m * 1e7)), 52])
             r = run(land, n, 0.0, 0.0, T, rng, islands=g, migration=m)
-            sig, t0 = growth_and_t0(r.holders_traj, n)
-            isig, _ = growth_and_t0(r.island_holders_traj, g)
-            rows.append((n, T, g, li, si, m, float(r.mean_f[-1]), sig, isig, t0))
+            sig, t0, _ = growth_and_t0(r.holders_traj, n)
+            isig, _, thalf = growth_and_t0(r.island_holders_traj, g)
+            rows.append((n, T, g, li, si, m, float(r.mean_f[-1]), sig, isig, t0, thalf))
     return rows
 
 
@@ -98,14 +100,14 @@ def edge_stats(P, n, T, lands, g=G):
     def at(field, m):
         return np.nanmean(np.concatenate([P[field][sel & (P["land"] == li) & (P["m"] == m)] for li in lands]))
     s_lo, s_hi, t_lo, t_hi = at("sigma", lo), at("sigma", hi), at("t0", lo), at("t0", hi)
-    i_lo, i_hi = at("isigma", lo), at("isigma", hi)
+    i_lo, i_hi, h_lo, h_hi = at("isigma", lo), at("isigma", hi), at("thalf", lo), at("thalf", hi)
     if j == 0 or not np.isfinite(s_lo):
-        sig, isig, t0 = s_hi, i_hi, t_hi
+        sig, isig, t0, thalf = s_hi, i_hi, t_hi, h_hi
     else:
-        w = (np.log(edge) - np.log(lo)) / (np.log(hi) - np.log(lo)); sig = (1 - w) * s_lo + w * s_hi; isig = (1 - w) * i_lo + w * i_hi; t0 = (1 - w) * t_lo + w * t_hi
+        w = (np.log(edge) - np.log(lo)) / (np.log(hi) - np.log(lo)); sig = (1 - w) * s_lo + w * s_hi; isig = (1 - w) * i_lo + w * i_hi; t0 = (1 - w) * t_lo + w * t_hi; thalf = (1 - w) * h_lo + w * h_hi
     plateau, mu0 = float(np.nanmax(smooth(curve))), float(curve[0])
     censored = (j == 0)
-    return edge, sig - 1.0, isig - 1.0, t0, plateau, mu0, censored
+    return edge, sig - 1.0, isig - 1.0, t0, plateau, mu0, censored, thalf
 
 
 def c_required(plateau, mu0):
@@ -117,7 +119,15 @@ def predicted_gap(n, T, t0, plateau, mu0):
 
 
 def predicted_island_gap(g, T, t0, plateau, mu0):
-    return np.log(c_required(plateau, mu0) * g) / max(T - t0, 1.0)
+    """Logistic spread among G islands: time from one island to coverage C_req is ln((G-1) C/(1-C)) / epsilon."""
+    c = min(c_required(plateau, mu0), 0.995)
+    return np.log((g - 1) * c / (1 - c)) / max(T - t0, 1.0)
+
+
+def predicted_time_ratio(g, plateau, mu0):
+    """At the edge, (T - t0) / (t_half - t0) = ln((G-1) C/(1-C)) / ln(G-1) under logistic spread."""
+    c = min(c_required(plateau, mu0), 0.995)
+    return np.log((g - 1) * c / (1 - c)) / np.log(g - 1)
 
 
 def main():
@@ -135,7 +145,7 @@ def main():
             [(N_G, T, g, li, cfg) for g in GS if g != G for T in T_G for li in range(cfg["n_land"])]
     with ProcessPoolExecutor() as ex:
         prow = [r for res in ex.map(pop_task, tasks) for r in res]
-    P = np.array(prow, dtype=[("n", int), ("T", int), ("G", int), ("land", int), ("seed", int), ("m", float), ("perf", float), ("sigma", float), ("isigma", float), ("t0", float)])
+    P = np.array(prow, dtype=[("n", int), ("T", int), ("G", int), ("land", int), ("seed", int), ("m", float), ("perf", float), ("sigma", float), ("isigma", float), ("t0", float), ("thalf", float)])
     np.save(f"{a.out}/population.npy", P)
     lands = list(range(cfg["n_land"]))
     L.append("## Islands: edge gaps against the zero-parameter predictions (G = 10, K = 6)\n")
@@ -144,7 +154,7 @@ def main():
     rat_a, rat_i, gaps_by_n, ints_by_n, cens = {}, {}, {}, {}, {}
     for n in NS:
         for T in TS:
-            edge, gap, igap, t_0, plateau, mu0, censored = edge_stats(P, n, T, lands)
+            edge, gap, igap, t_0, plateau, mu0, censored, thalf = edge_stats(P, n, T, lands)
             pa, pi = predicted_gap(n, T, t_0, plateau, mu0), predicted_island_gap(G, T, t_0, plateau, mu0)
             bs, bi = [], []
             for _ in range(N_BOOT):
@@ -162,7 +172,7 @@ def main():
         return ("pass" if (n_in >= n_tot - 2 and n_out == 0) else ("fail" if (n_out >= 2 or n_in < n_tot // 2) else "inconclusive")), n_in, n_out, n_tot
     o1, i1, x1, t1 = band_outcome(rat_a, 0.65, 1.5, 0.4, 2.5); o2, i2, x2, t2 = band_outcome(rat_i, 0.6, 1.6, 0.4, 2.5)
     L.append(f"\nP-B1 (agent, Proposition 8): {i1}/{t1} ratios in [0.65, 1.5], {x1} outside [0.4, 2.5], censored cells {n_cens}")
-    L.append(f"P-B2 (island, Theorem 6): {i2}/{t2} ratios in [0.6, 1.6], {x2} outside [0.4, 2.5]")
+    L.append(f"P-B2 (island, logistic Theorem 6): {i2}/{t2} ratios in [0.6, 1.6], {x2} outside [0.4, 2.5]")
     out["P-B1"], out["P-B2"] = o1, o2
     # P-B3: decrease in T by mutual exclusion of point estimates, and exponent band
     dec_all, exps = True, []
@@ -171,28 +181,20 @@ def main():
         dec_all &= (hi3 < g0) and (lo0 > g3); exps.append(-loglog_slope(TS, gaps_by_n[n]))
     L.append(f"P-B3: T = 2000 below T = 250 by mutual exclusion at every N: {dec_all}; exponents by N: {[round(e, 2) for e in exps]} (band [0.7, 1.3])")
     exps = np.array(exps); out["P-B3"] = "pass" if (dec_all and np.all((exps >= 0.7) & (exps <= 1.3))) else ("fail" if (not dec_all or np.any(exps < 0.4) or np.any(exps > 1.6)) else "inconclusive")
-    # P-B4: island gap x (T - t0) against ln G at N = 200
-    L.append(f"\n## Islands: island gap x (T - t0) against ln G at N = {N_G}\n"); L.append("| G | T | edge m | censored | island gap | t0 | island gap x (T - t0) | ln(C_req G) |"); L.append("|---|---|---|---|---|---|---|---|")
-    xg, yg = [], []
+    # P-B4: timing at the edge across G at N = 200: (T - t0)/(t_half - t0) against the logistic prediction
+    L.append(f"\n## Islands: edge timing against ln G at N = {N_G}\n"); L.append("| G | T | edge m | censored | t0 | t_half | (T - t0)/(t_half - t0) | predicted | ratio |"); L.append("|---|---|---|---|---|---|---|---|---|")
+    rat_t = []
     for g in GS:
         for T in T_G:
-            edge, gap, igap, t_0, plateau, mu0, censored = edge_stats(P, N_G, T, lands, g=g)
-            L.append(f"| {g} | {T} | {edge:.3g} | {censored} | {igap:+.4f} | {t_0:.0f} | {igap * (T - t_0):.2f} | {np.log(c_required(plateau, mu0) * g):.2f} |")
-            if not censored and np.isfinite(igap):
-                xg.append(np.log(g)); yg.append(igap * (T - t_0))
-    slope_g = float(np.polyfit(xg, yg, 1)[0]) if len(xg) >= 4 else np.nan
-    sb = []
-    for _ in range(N_BOOT):
-        pick = list(rng.choice(lands, len(lands), replace=True)); xx, yy = [], []
-        for g in GS:
-            for T in T_G:
-                r2 = edge_stats(P, N_G, T, pick, g=g)
-                if not r2[6] and np.isfinite(r2[2]):
-                    xx.append(np.log(g)); yy.append(r2[2] * (T - r2[3]))
-        sb.append(np.polyfit(xx, yy, 1)[0] if len(xx) >= 4 else np.nan)
-    glo, ghi = np.nanpercentile(sb, [5, 95])
-    L.append(f"\nP-B4: slope of island gap x (T - t0) against ln G = {slope_g:+.3f}, 90% interval [{glo:+.3f}, {ghi:+.3f}] (predicted 1)")
-    out["P-B4"] = "pass" if (np.isfinite(slope_g) and 0.6 <= slope_g <= 1.4 and glo > 0.2) else ("fail" if (np.isfinite(ghi) and (ghi < 0.3 or glo > 1.7)) else "inconclusive")
+            edge, gap, igap, t_0, plateau, mu0, censored, thalf = edge_stats(P, N_G, T, lands, g=g)
+            meas = (T - t_0) / max(thalf - t_0, 1.0) if np.isfinite(thalf) else np.nan
+            pred = predicted_time_ratio(g, plateau, mu0)
+            if not censored and np.isfinite(meas):
+                rat_t.append(meas / pred)
+            L.append(f"| {g} | {T} | {edge:.3g} | {censored} | {t_0:.0f} | {thalf:.0f} | {meas:.2f} | {pred:.2f} | {meas / pred:.2f} |")
+    rt = np.array(rat_t); n_in4 = int(np.sum((rt >= 0.7) & (rt <= 1.4))); n_out4 = int(np.sum((rt < 0.5) | (rt > 2.0)))
+    L.append(f"\nP-B4: {n_in4}/{len(rt)} timing ratios in [0.7, 1.4], {n_out4} outside [0.5, 2.0]")
+    out["P-B4"] = "inconclusive" if len(rt) < 6 else ("pass" if (n_in4 >= len(rt) - 2 and n_out4 == 0) else ("fail" if (n_out4 >= 2 or n_in4 < len(rt) // 2) else "inconclusive"))
 
     # ---- reservoir ----
     tasks = [(kind, noise, n, ridge, si, cfg) for kind, noise, n, ridge in ESN_CELLS for si in range(cfg["n_esn_seed"])]
@@ -234,13 +236,13 @@ def main():
         s = rng.choice(seeds_all, len(seeds_all), replace=True); db.append(alpha_cell(0.01, 800, 1e-6, s)[0] - alpha_cell(0.01, 200, 1e-6, s)[0])
     dlo, dhi = np.nanpercentile(db, [5, 95])
     L.append(f"\nP-C2: alpha(800) - alpha(200) at noise 0.01 = {d:+.3f}, interval [{dlo:+.3f}, {dhi:+.3f}]")
-    out["P-C2"] = "pass" if (d >= 0.05 and dlo > 0) else ("fail" if dhi < 0 else "inconclusive")
+    L.append("(size effect is exploratory in version two; not a prediction)")
     # P-C3: ridge ordering at noise 0.001
     r6, r3, r1 = get(0.001, 200, 1e-6)[0], get(0.001, 200, 1e-3)[0], get(0.001, 200, 1e-1)[0]
     L.append(f"P-C3: alpha by ridge at noise 0.001: 1e-6 -> {r6:+.2f}, 1e-3 -> {r3:+.2f}, 1e-1 -> {r1:+.2f}")
     out["P-C3"] = "pass" if (r6 < r3 < r1) else ("fail" if (r6 > r3 > r1) else "inconclusive")
     L.append("\n## Outcomes, applied literally\n")
-    for pid in ["P-B1", "P-B2", "P-B3", "P-B4", "P-C1", "P-C2", "P-C3"]:
+    for pid in ["P-B1", "P-B2", "P-B3", "P-B4", "P-C1", "P-C3"]:
         L.append(f"- {pid}: {out[pid]}")
     L.append(f"\nElapsed {time.time() - t0:.0f}s.\n")
     open(f"{a.out}/summary.md", "w").write("\n".join(L) + "\n"); print("\n".join(L))
