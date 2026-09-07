@@ -25,3 +25,10 @@ Frozen on the user's instruction to proceed with the classical study, without Co
 review, which had been requested but not yet returned. The user's review of criteria was the
 instruction to proceed. If the review later identifies a flaw in a criterion, it is handled as a
 successor version, not as an edit. Confirmatory command unchanged: uv run python scripts/study_gap.py.
+
+## 2026-09-07, after the run
+
+1025 s. P-B1 failed on the monotonicity clause with the exponent on target; P-C1 passed at every
+noise level; P-B2 and P-C2 passed; P-B3 and P-B5 inconclusive. Verdict by rules: refuted. The
+heuristic forecast score moves the other way (most likelihood ratios favour the theory), which is
+exactly why status is decided by rules and the score is labelled a heuristic.
