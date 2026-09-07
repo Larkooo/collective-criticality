@@ -18,3 +18,10 @@
 - Tolerances were set after the pilots, on excluded seeds, and are fixed here before the confirmatory
   run on seed base 4242. The prior credence of 0.5 is a judgement made after the pilots.
 - Not frozen. Awaiting Codex's adversarial review and the user's review of criteria and margins.
+
+## 2026-09-07, freeze
+
+Frozen on the user's instruction to proceed with the classical study, without Codex's adversarial
+review, which had been requested but not yet returned. The user's review of criteria was the
+instruction to proceed. If the review later identifies a flaw in a criterion, it is handled as a
+successor version, not as an edit. Confirmatory command unchanged: uv run python scripts/study_gap.py.
