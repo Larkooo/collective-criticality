@@ -61,8 +61,10 @@ predictions:
   discriminates:
   - H_struct
   - H_noform
-  outcome: null
-  evidence: null
+  outcome: inconclusive
+  evidence: 'results/study_gap2/summary.md: 10/16 agent ratios in [0.65, 1.5]; 1 outside [0.4, 2.5] (N = 400, T
+    = 2000, ratio 30.1, edge m = 0.0016 against neighbours near 0.0002; the plateau maximum is noisy there and the
+    edge left it). The remaining 15 ratios run 0.77 to 1.90.'
 - id: P-B2
   statement: Counting islands, the cross-island edge gap equals the logistic Theorem 6 prediction ln((G - 1) C_req/(1
     - C_req))/(T - t0) with no free parameter across the (N, T) cells, independent of N.
@@ -76,8 +78,9 @@ predictions:
   p_fail_if_false: 0.65
   discriminates:
   - H_struct
-  outcome: null
-  evidence: null
+  outcome: inconclusive
+  evidence: 14/16 island ratios in [0.6, 1.6]; 1 outside (the same cell, ratio 27.8). The remaining 15 run 0.77
+    to 1.94 with 14 in band; island gap x (T - t0) is 3.6 to 8.7 against the logistic constant 4.8.
 - id: P-B3
   statement: With a smoothed edge estimator, the gap decreases in T at every N, and the exponent stays in the version-one
     band.
@@ -92,8 +95,9 @@ predictions:
   p_fail_if_false: 0.5
   discriminates:
   - H_est
-  outcome: null
-  evidence: null
+  outcome: fail
+  evidence: 'exponents by N: 0.95, 1.30, 1.07, -0.33; the N = 400 exponent and the mutual-exclusion test are broken
+    by the same cell.'
 - id: P-B4
   statement: At fixed N = 200 and across G in {5, 10, 20, 50}, half coverage at the edge is reached at the predicted
     fraction of the available time, (T - t0)/(t_half - t0) = ln((G - 1) C_req/(1 - C_req)) / ln(G - 1).
@@ -107,8 +111,9 @@ predictions:
   p_fail_if_false: 0.55
   discriminates:
   - H_struct
-  outcome: null
-  evidence: null
+  outcome: pass
+  evidence: 8/8 timing ratios in [0.7, 1.4] (0.93 to 1.19) across G = 5, 10, 20, 50 at T = 500 and 1000; measured
+    (T - t0)/(t_half - t0) runs 1.62 to 2.87 against predicted 1.75 to 2.54.
 - id: P-C1
   statement: At input noise 0.15, where noise dominates interference, the reservoir exponent is close to 1.
   critical: true
@@ -120,8 +125,9 @@ predictions:
   p_fail_if_false: 0.6
   discriminates:
   - H_noform
-  outcome: null
-  evidence: null
+  outcome: inconclusive
+  evidence: alpha = 0.82 with interval [0.74, 0.89] over 5 feasible delays at noise 0.15; below the pass band [0.85,
+    1.05]; the fail clause (interval below 0.7) is not met. The pilot on other seeds gave 0.98.
 - id: P-C3
   statement: At noise 0.001, the ridge penalty acts as effective noise; the exponent rises with it.
   critical: false
@@ -133,8 +139,8 @@ predictions:
   p_fail_if_false: 0.35
   discriminates:
   - H_noform
-  outcome: null
-  evidence: null
+  outcome: pass
+  evidence: 'alpha by ridge at noise 0.001: 0.49, 0.51, 0.72, strictly increasing, replicating the pilot.'
 analysis_plan: 'One command: uv run python scripts/study_gap2.py (seed base 6161; pilots used 5151). Population:
   8 landscapes x 4 seeds per grid point; m grid of 25 log-spaced points from 2e-5 to 0.316. Curve smoothing: 3-point
   moving average in log m; edge = smallest m at which the smoothed mean fitness is within 0.005 of its maximum,
@@ -153,9 +159,37 @@ kill_rule: If P-B1 or P-B2 fails, the exponential-spread and logistic-spread acc
   different mechanism and predict something these data do not show. If P-C1 fails, the claim that the reservoir
   exponent approaches 1 in the noise-dominated limit is abandoned.
 results:
-  summary: null
-  exploratory: []
+  summary: 'Population: every gap positive; the logistic island constant is within a factor 1.6 of its zero-parameter
+    prediction in 14 of 15 clean cells and the agent-count prediction in 10 of 15; one cell (N = 400, T = 2000)
+    failed by a factor of 30 because the plateau maximum is noisy there and the edge estimator followed it. The
+    timing prediction across G, with no free parameter, passed 8 of 8 cells within 20 percent. Reservoir: noise-0.15
+    exponent 0.82 [0.74, 0.89], short of the 0.85 band; ridge ordering replicated; the size effect, exploratory,
+    is +0.05 with interval [+0.006, +0.10].'
+  exploratory:
+  - finding: 'The edge estimator fails when the plateau maximum is a noisy grid point: at N = 400, T = 2000 the
+      smoothed maximum was inflated and the 0.005 window moved to a larger m. Bootstrap intervals are also very
+      wide in several cells for the same reason.'
+    next_test: Define the plateau as the median of the upper half of the smoothed curve rather than its maximum,
+      and re-check on the saved pilot data before a version three.
+  - finding: The size effect in the reservoir (n = 800 minus n = 200 at noise 0.01) is +0.049 with an interval excluding
+      0 on these seeds.
+    next_test: Preregister it again with n = 1600 added.
+  - finding: The noise-dominated reservoir exponent moved from 0.98 (pilot seeds) to 0.82 (confirmatory seeds) with
+      5 feasible delays; the estimate is seed-sensitive at this noise.
+    next_test: More seeds and delays 1 to 6 in unit steps at noise 0.15 before restating the band.
 review:
-  strongest_objection: null
-  confounds_checked: []
-  what_would_change_my_mind: null
+  strongest_objection: 'For the population: the same estimator defect that refuted version one, an edge that follows
+    a noisy plateau maximum, survived into version two in one cell and by the frozen rules turns two 14-of-16 results
+    into inconclusives; the estimator, not the logistic law, is what failed, but a rule is a rule. Against the theory:
+    the island constant went through three forms at the design stage, and although the confirmatory seeds were fresh,
+    a reader is entitled to discount a constant that was chosen after two misses. The timing prediction is the cleanest
+    evidence in the study because it uses no growth fit at all. For the reservoir: 0.82 is not close to 1, and the
+    pilot''s 0.98 was the optimistic tail of a seed-sensitive estimate.'
+  confounds_checked:
+  - bootstrap over 8 landscapes for every population interval; 8 seeds for every reservoir interval
+  - 'censoring at the grid floor: no cell censored'
+  - 'the failing cell inspected: edge at 0.0016 with neighbours at 0.0002, plateau maximum inflated'
+  - reservoir feasibility floors applied as frozen
+  what_would_change_my_mind: A version three with a median-plateau estimator that still leaves an island ratio outside
+    [0.4, 2.5] in any cell, or a timing ratio outside [0.7, 1.4] in more than two cells. For the reservoir, an exponent
+    interval at noise 0.15 that excludes 0.85 with 8 or more delays.

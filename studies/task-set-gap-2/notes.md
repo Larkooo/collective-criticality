@@ -28,3 +28,11 @@ ln(C_req G), now logistic); the confirmatory run is on fresh seeds and this hist
 prior stays at 0.5. The ln G slope test was replaced by a timing test because the geometric fit is
 unreliable for G = 5 (only a few islands to fit). Noise-dominated reservoir cell at 0.15: exponent 0.98.
 Size effect 0.03, unresolvable, removed as a prediction. No further pilots; freeze next.
+
+## 2026-09-07, after the confirmatory run (seed base 6161)
+
+1383 s. Critical predictions all inconclusive: the agent and island ratio tests each lost to a single
+cell (N = 400, T = 2000) where the plateau maximum was inflated and the edge moved; the reservoir
+exponent at noise 0.15 came in at 0.82 against a band starting at 0.85. The timing prediction across
+G passed 8 of 8 with no free parameter. Verdict by rules: inconclusive. Fix the design, not the theory:
+version three replaces the plateau maximum with the median of the upper half of the smoothed curve.

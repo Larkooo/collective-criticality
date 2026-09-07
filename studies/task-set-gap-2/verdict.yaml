@@ -1,0 +1,52 @@
+status: inconclusive
+prior_credence: 0.5
+posterior_credence: 0.8333
+boundary_inputs: []
+log10_evidence: 0.699
+likelihood_mode: three-outcome
+predictions:
+- id: P-B1
+  critical: true
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  mode: three-outcome
+  weak_test: false
+  boundary: false
+- id: P-B2
+  critical: true
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  mode: three-outcome
+  weak_test: false
+  boundary: false
+- id: P-B3
+  critical: false
+  outcome: fail
+  likelihood_ratio: 0.3
+  mode: three-outcome
+  weak_test: false
+  boundary: false
+- id: P-B4
+  critical: false
+  outcome: pass
+  likelihood_ratio: 5.0
+  mode: three-outcome
+  weak_test: false
+  boundary: false
+- id: P-C1
+  critical: true
+  outcome: inconclusive
+  likelihood_ratio: 1.0
+  mode: three-outcome
+  weak_test: false
+  boundary: false
+- id: P-C3
+  critical: false
+  outcome: pass
+  likelihood_ratio: 3.333
+  mode: three-outcome
+  weak_test: false
+  boundary: false
+missing: []
+computed_at: '2026-09-07T03:30:17+00:00'
+exploratory: false
