@@ -58,6 +58,7 @@ class RunResult:
     adopt_before_complete: int = -1  # adoptions while the recipient still had an improving single flip (diagnostics only)
     adopt_after_complete: int = -1   # adoptions by a recipient already at a local optimum (diagnostics only)
     holders_traj: np.ndarray | None = None  # per step, agents holding the genotype that ends as best-found
+    island_holders_traj: np.ndarray | None = None  # per step, islands with at least one such agent (islands mode)
     final_f: np.ndarray | None = None
     final_X: np.ndarray | None = None
     final_lineage: np.ndarray | None = None
@@ -194,12 +195,14 @@ def run(land: NK, n_agents: int, p_link: float, temperature: float, steps: int,
     counts = np.bincount(lineage, minlength=m).astype(float)
     p_lin = counts[counts > 0] / m
     best_holders = float((X == X[int(f.argmax())]).all(1).mean())
-    holders_traj = (packed == packed[-1, int(f.argmax())][None, None, :]).all(2).sum(1).astype(np.int32)
+    is_best = (packed == packed[-1, int(f.argmax())][None, None, :]).all(2)
+    holders_traj = is_best.sum(1).astype(np.int32)
+    island_holders_traj = is_best.reshape(steps, islands, m // islands).any(2).sum(1).astype(np.int32) if islands is not None else None
     return RunResult(mean_f, max_f, div, nu, i_mem, i_pred, i_mem - i_pred, t_conv,
                      float(changed_frac.mean()), visited, n_evals, n_copies,
                      int((counts > 0).sum()), float(1.0 / (p_lin ** 2).sum()),
                      contacts, best_holders,
                      before_complete if diagnostics else -1, after_complete if diagnostics else -1,
-                     holders_traj,
+                     holders_traj, island_holders_traj,
                      f.copy() if return_state else None, X.copy() if return_state else None,
                      lineage.copy() if return_state else None)

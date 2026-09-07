@@ -1,145 +1,172 @@
 slug: task-set-gap-2
-title: The gap at the population window edge is fixed by exponential spread to the required coverage; the reservoir exponent approaches 1 as noise or ridge dominates interference
+title: The gap at the population window edge is fixed by exponential spread to the required coverage; the reservoir
+  exponent approaches 1 as noise or ridge dominates interference
 created: 2026-09-07
 exploratory: false
-
 theory:
   name: task-set-gap
   version: 2
   supersedes: task-set-gap@1
-  statement: |
-    Version one's structure stands: a positive gap from the propagation transition, scaling as one over
-    the task's depth for rate objectives. Version two replaces two derivations that version one got
-    wrong or incomplete. (1) In the island population, the measured quantity is the growth of agents
-    holding the eventual best, so the edge gap is fixed by exponential spread from first appearance to
-    the coverage the window tolerance requires: gap x (T - t0) = ln(C_req N), with no free parameter,
-    rising by ln 2 per doubling of N and independent of the number of islands at fixed N. (2) In the
-    reservoir, interference among delays sharing a finite state softens the exponent below 1; as input
-    noise, ridge penalty, or network size increase, the exponent rises toward 1.
-  formal: |
-    docs/FORMAL_STRUCTURE.md, Proposition 8 and Section 10. Entailed by the setup and reported, not
-    counted: that gaps are positive (already shown in version one). Assumed and tested: that holders
-    grow geometrically from first appearance to the required coverage (P-B1, P-B2), that the smoothed
-    edge estimator is stable (P-B3), and that ridge acts as effective noise in the reservoir (P-C3).
-  scope: |
-    Copy-or-climb population, K = 6, G = 10 islands, N in {50, 100, 200, 400}, horizons T in
-    {250, 500, 1000, 2000}, m grid of 25 points from 1e-4 to 0.316. Echo-state network with tanh units,
-    density 0.1, delays k in {1, 2, 4, 8, 16}, cells: noise 0.3 and 1.0 at n = 200; noise 0.01 at
-    n = 200 and n = 800; noise 0.001 at n = 200 with ridge 1e-6, 1e-3, 1e-1.
+  statement: 'Version one''s structure stands: a positive gap from the propagation transition, scaling as one over
+    the task''s depth for rate objectives. Version two replaces two derivations that version one got wrong or incomplete.
+    (1) In the island population, two quantities are measured. Counting agents, the edge gap is fixed by exponential
+    spread from first appearance to the coverage the window tolerance requires: gap x (T - t0) = ln(C_req N) (Proposition
+    8). Counting islands, which removes the instant within-island jump, the cross-island gap satisfies Theorem 6
+    in its proper unit: gap x (T - t0) = ln(C_req G), independent of N at fixed G and rising with unit slope in
+    ln G at fixed N. Neither has a free parameter. (2) In the reservoir, interference among delays sharing a finite
+    state softens the exponent below 1; as input noise, ridge penalty, or network size increase, the exponent rises
+    toward 1.'
+  formal: 'docs/FORMAL_STRUCTURE.md, Proposition 8, Section 10, and the design-pilot correction (island-count form).
+    Entailed by the setup and reported, not counted: that gaps are positive. Assumed and tested: geometric growth
+    of holders and of islands holding the best from first appearance to the required coverage (P-B1, P-B2, P-B4);
+    a stable smoothed edge estimator (P-B3); ridge as effective noise (P-C3). Design-pilot record: on seed base
+    5151 the agent-count ratio held in 14 of 16 cells, the agent-count slope against ln N was about 0.5 (explained
+    by the within-island jump, hence the island-count form), the noise-0.3 reservoir cell had too few feasible delays
+    (moved to 0.15 with a 0.4 floor), and the ridge ordering held.'
+  scope: 'Copy-or-climb population, K = 6. N sweep: G = 10, N in {50, 100, 200, 400}, T in {250, 500, 1000, 2000}.
+    G sweep: N = 200, G in {5, 10, 20, 50}, T in {500, 1000}. m grid of 25 points from 2e-5 to 0.316; an edge at
+    the grid floor is censored. Echo-state network with tanh units, density 0.1, delays k in {1, 2, 3, 4, 6, 8,
+    16}; cells: noise 0.15 at n = 200 (R^2 floor 0.4); noise 0.01 at n = 200 and n = 800; noise 0.001 at n = 200
+    with ridge 1e-6, 1e-3, 1e-1 (floor 0.5).'
   prior_credence: 0.5
-
 alternatives:
-  - id: H_struct
-    statement: |
-      The edge gap is a property of the communication structure alone: no dependence on N at fixed G,
-      and no relation to the coverage the window requires.
-  - id: H_noform
-    statement: |
-      Gaps are positive but Proposition 8's prediction is off by more than a factor of two, or the
-      reservoir exponent does not move toward 1 with noise, ridge, or size.
-  - id: H_est
-    statement: |
-      Version one's failure was physics, not the estimator: a stable estimator still shows non-monotone
-      gaps in T.
+- id: H_struct
+  statement: 'The edge gap is a property of the communication structure alone: no dependence on N at fixed G,
 
+    and no relation to the coverage the window requires.
+
+    '
+- id: H_noform
+  statement: 'Gaps are positive but Proposition 8''s prediction is off by more than a factor of two, or the
+
+    reservoir exponent does not move toward 1 with noise, ridge, or size.
+
+    '
+- id: H_est
+  statement: 'Version one''s failure was physics, not the estimator: a stable estimator still shows non-monotone
+
+    gaps in T.
+
+    '
 predictions:
-  - id: P-B1
-    statement: The measured edge gap equals Proposition 8's prediction ln(C_req N)/(T - t0) with no free parameter, across all 16 (N, T) cells.
-    critical: true
-    pass_if: the ratio of measured to predicted gap lies in [0.65, 1.5] in at least 14 of the 16 cells, and no ratio lies outside [0.4, 2.5]
-    fail_if: 2 or more ratios lie outside [0.4, 2.5], or fewer than 8 of 16 lie in [0.65, 1.5]
-    p_pass_if_true: 0.55
-    p_pass_if_false: 0.05
-    p_fail_if_true: 0.15
-    p_fail_if_false: 0.65
-    discriminates: [H_struct, H_noform]
-    outcome: null
-    evidence: null
-  - id: P-B2
-    statement: gap x (T - t0) rises with ln N with unit slope.
-    critical: true
-    pass_if: the least-squares slope of gap x (T - t0) against ln N, pooled over T, lies in [0.6, 1.4]
-    fail_if: the 90% bootstrap interval of the slope lies entirely below 0.3 or entirely above 1.7
-    p_pass_if_true: 0.6
-    p_pass_if_false: 0.1
-    p_fail_if_true: 0.15
-    p_fail_if_false: 0.6
-    discriminates: [H_struct]
-    outcome: null
-    evidence: null
-  - id: P-B3
-    statement: With a smoothed edge estimator, the gap decreases in T at every N, and the exponent stays in the version-one band.
-    critical: false
-    pass_if: at every N, the 90% interval at T = 2000 lies entirely below the interval at T = 250, and the exponent of gap against T lies in [0.7, 1.3]
-    fail_if: at any N the intervals are not ordered, or any exponent lies below 0.4 or above 1.6
-    p_pass_if_true: 0.6
-    p_pass_if_false: 0.2
-    p_fail_if_true: 0.15
-    p_fail_if_false: 0.5
-    discriminates: [H_est]
-    outcome: null
-    evidence: null
-  - id: P-C1
-    statement: At input noise 0.3, where noise dominates interference, the reservoir exponent is close to 1.
-    critical: true
-    pass_if: at least 3 feasible delays (max R^2 >= 0.5) and the exponent lies in [0.85, 1.05]
-    fail_if: at least 3 feasible delays and the 90% interval lies entirely below 0.7 or entirely above 1.2
-    p_pass_if_true: 0.55
-    p_pass_if_false: 0.1
-    p_fail_if_true: 0.15
-    p_fail_if_false: 0.6
-    discriminates: [H_noform]
-    outcome: null
-    evidence: null
-  - id: P-C2
-    statement: At noise 0.01, quadrupling the network from 200 to 800 units raises the exponent.
-    critical: false
-    pass_if: alpha(800) - alpha(200) is at least 0.05 and its 90% bootstrap interval lies entirely above 0
-    fail_if: the interval lies entirely below 0
-    p_pass_if_true: 0.55
-    p_pass_if_false: 0.2
-    p_fail_if_true: 0.15
-    p_fail_if_false: 0.4
-    discriminates: [H_noform]
-    outcome: null
-    evidence: null
-  - id: P-C3
-    statement: At noise 0.001, the ridge penalty acts as effective noise; the exponent rises with it.
-    critical: false
-    pass_if: alpha increases strictly across ridge 1e-6, 1e-3, 1e-1
-    fail_if: alpha decreases strictly across ridge 1e-6, 1e-3, 1e-1
-    p_pass_if_true: 0.5
-    p_pass_if_false: 0.15
-    p_fail_if_true: 0.15
-    p_fail_if_false: 0.35
-    discriminates: [H_noform]
-    outcome: null
-    evidence: null
-
-analysis_plan: |
-  One command: uv run python scripts/study_gap2.py (seed base 6161; the design pilot used 5151 and
-  version one used 4242 and 7777). Population: 6 landscapes x 4 seeds per grid point. Curve smoothing:
-  3-point moving average in log m before the edge is located; edge = smallest m at which the smoothed
-  mean fitness is within 0.005 of its maximum, refined by log-linear interpolation. Measured gap:
-  holders-growth factor at the bracketing grid points, log-linearly weighted, minus 1. t0: first
-  appearance time of the eventual best, same weighting. Predicted gap: ln(C_req N)/(T - t0) with
-  C_req = 1 - 0.005/(plateau - mean fitness at m = 0), plateau = maximum of the smoothed curve.
-  Intervals: 200 bootstrap resamples over landscapes; an estimate outside its own interval is flagged
-  and reported. Reservoir: 8 seeds per cell, 31 radii from 0.5 to 1.25, R^2 floor 0.5, exponent from
-  least squares of log gap on log k over feasible delays, intervals from 200 resamples over seeds.
-  Outcomes are computed by the script and printed under "Outcomes, applied literally". Runtime about
-  40 minutes on 10 cores.
-
-kill_rule: |
-  If P-B1 or P-B2 fails, Proposition 8 is abandoned as a description of the population edge and the
-  population half of the theory goes to the graveyard; a successor must derive the edge from a
-  different mechanism and predict something these data do not show. If P-C1 fails, the claim that
-  the reservoir exponent approaches 1 in the noise-dominated limit is abandoned.
-
+- id: P-B1
+  statement: Counting agents, the measured edge gap equals Proposition 8's prediction ln(C_req N)/(T - t0) with
+    no free parameter across the (N, T) cells.
+  critical: true
+  pass_if: among uncensored cells (at least 12 of 16, at most 2 censored), the ratio of measured to predicted agent
+    gap lies in [0.65, 1.5] in all but at most 2, and none lies outside [0.4, 2.5]
+  fail_if: 2 or more ratios lie outside [0.4, 2.5], or fewer than half lie in [0.65, 1.5]
+  p_pass_if_true: 0.55
+  p_pass_if_false: 0.05
+  p_fail_if_true: 0.15
+  p_fail_if_false: 0.65
+  discriminates:
+  - H_struct
+  - H_noform
+  outcome: null
+  evidence: null
+- id: P-B2
+  statement: Counting islands, the cross-island edge gap equals Theorem 6's prediction ln(C_req G)/(T - t0) with
+    no free parameter across the (N, T) cells, independent of N.
+  critical: true
+  pass_if: among uncensored cells (at least 12 of 16, at most 2 censored), the ratio of measured to predicted island
+    gap lies in [0.6, 1.6] in all but at most 2, and none lies outside [0.4, 2.5]
+  fail_if: 2 or more ratios lie outside [0.4, 2.5], or fewer than half lie in [0.6, 1.6]
+  p_pass_if_true: 0.5
+  p_pass_if_false: 0.05
+  p_fail_if_true: 0.2
+  p_fail_if_false: 0.65
+  discriminates:
+  - H_struct
+  outcome: null
+  evidence: null
+- id: P-B3
+  statement: With a smoothed edge estimator, the gap decreases in T at every N, and the exponent stays in the version-one
+    band.
+  critical: false
+  pass_if: at every N, the T = 2000 interval lies entirely below the T = 250 point estimate and the T = 250 interval
+    entirely above the T = 2000 point estimate, and the exponent of agent gap against T lies in [0.7, 1.3]
+  fail_if: at any N the point estimates are not mutually excluded in that sense, or any exponent lies below 0.4
+    or above 1.6
+  p_pass_if_true: 0.6
+  p_pass_if_false: 0.2
+  p_fail_if_true: 0.15
+  p_fail_if_false: 0.5
+  discriminates:
+  - H_est
+  outcome: null
+  evidence: null
+- id: P-B4
+  statement: At fixed N = 200, island gap x (T - t0) rises with ln G with unit slope.
+  critical: false
+  pass_if: the least-squares slope over uncensored (G, T) cells lies in [0.6, 1.4] and its 90% bootstrap interval
+    lies above 0.2
+  fail_if: the 90% bootstrap interval lies entirely below 0.3 or entirely above 1.7
+  p_pass_if_true: 0.55
+  p_pass_if_false: 0.1
+  p_fail_if_true: 0.15
+  p_fail_if_false: 0.55
+  discriminates:
+  - H_struct
+  outcome: null
+  evidence: null
+- id: P-C1
+  statement: At input noise 0.15, where noise dominates interference, the reservoir exponent is close to 1.
+  critical: true
+  pass_if: at least 3 feasible delays (max R^2 >= 0.4) and the exponent lies in [0.85, 1.05]
+  fail_if: at least 3 feasible delays and the 90% interval lies entirely below 0.7 or entirely above 1.2
+  p_pass_if_true: 0.55
+  p_pass_if_false: 0.1
+  p_fail_if_true: 0.15
+  p_fail_if_false: 0.6
+  discriminates:
+  - H_noform
+  outcome: null
+  evidence: null
+- id: P-C2
+  statement: At noise 0.01, quadrupling the network from 200 to 800 units raises the exponent.
+  critical: false
+  pass_if: alpha(800) - alpha(200) is at least 0.05 and its 90% bootstrap interval lies entirely above 0
+  fail_if: the interval lies entirely below 0
+  p_pass_if_true: 0.55
+  p_pass_if_false: 0.2
+  p_fail_if_true: 0.15
+  p_fail_if_false: 0.4
+  discriminates:
+  - H_noform
+  outcome: null
+  evidence: null
+- id: P-C3
+  statement: At noise 0.001, the ridge penalty acts as effective noise; the exponent rises with it.
+  critical: false
+  pass_if: alpha increases strictly across ridge 1e-6, 1e-3, 1e-1
+  fail_if: alpha decreases strictly across ridge 1e-6, 1e-3, 1e-1
+  p_pass_if_true: 0.5
+  p_pass_if_false: 0.15
+  p_fail_if_true: 0.15
+  p_fail_if_false: 0.35
+  discriminates:
+  - H_noform
+  outcome: null
+  evidence: null
+analysis_plan: 'One command: uv run python scripts/study_gap2.py (seed base 6161; pilots used 5151). Population:
+  8 landscapes x 4 seeds per grid point; m grid of 25 log-spaced points from 2e-5 to 0.316. Curve smoothing: 3-point
+  moving average in log m; edge = smallest m at which the smoothed mean fitness is within 0.005 of its maximum,
+  log-linearly interpolated; an edge at the first grid point is censored and excluded. Agent gap: holders-growth
+  factor at the bracketing grid points, log-linearly weighted, minus 1; island gap: the same on the count of islands
+  holding the eventual best; t0: first-appearance time. Predictions: ln(C_req N)/(T - t0) and ln(C_req G)/(T - t0)
+  with C_req = 1 - 0.005/(plateau - mean fitness at m = 0). Intervals: 200 bootstrap resamples over landscapes;
+  estimates outside their own interval are flagged. Reservoir: 8 seeds per cell, 31 radii from 0.5 to 1.25, delays
+  {1, 2, 3, 4, 6, 8, 16}, R^2 floor 0.5 (0.4 for the noise-0.15 cell), exponent by least squares of log gap on log
+  k over feasible delays, intervals from 200 resamples over seeds. Outcomes computed by the script under ''Outcomes,
+  applied literally''. Runtime about 50 minutes on 10 cores.'
+kill_rule: If P-B1 or P-B2 fails, the exponential-spread account of the population edge is abandoned and the population
+  half of the theory goes to the graveyard; a successor must derive the edge from a different mechanism and predict
+  something these data do not show. If P-C1 fails, the claim that the reservoir exponent approaches 1 in the noise-dominated
+  limit is abandoned.
 results:
   summary: null
   exploratory: []
-
 review:
   strongest_objection: null
   confounds_checked: []
