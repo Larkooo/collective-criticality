@@ -19,9 +19,10 @@ MS = [float(x) for x in np.logspace(-4.7, -0.5, 25)]
 GS = [5, 10, 20, 50]
 N_G, T_G = 200, [500, 1000]
 NOISE_DOM = 0.15
-KS_ESN = [1, 2, 3, 4, 6, 8, 16]
+KS_ESN = [1, 2, 3, 4, 5, 6, 8, 16]
 RHOS = [float(x) for x in np.linspace(0.5, 1.25, 31)]
-ESN_CELLS = [("noise", NOISE_DOM, 200, 1e-6), ("size", 0.01, 200, 1e-6), ("size", 0.01, 800, 1e-6),
+NOISE_HI = 0.2
+ESN_CELLS = [("noise", NOISE_DOM, 200, 1e-6), ("noise", NOISE_HI, 200, 1e-6), ("size", 0.01, 200, 1e-6), ("size", 0.01, 800, 1e-6),
              ("ridge", 0.001, 200, 1e-6), ("ridge", 0.001, 200, 1e-3), ("ridge", 0.001, 200, 1e-1)]
 CFG = dict(n_land=8, n_seed=4, n_esn_seed=8, seed_base=6161)
 
@@ -51,11 +52,24 @@ def smooth(curve):
     return out
 
 
+PLATEAU = "max"  # "max" (versions one and two) or "median-top" (version three)
+
+
+def plateau_level(c):
+    if PLATEAU == "median-top":
+        order = np.argsort(c); upper = c[order[len(c) // 2:]]
+        return float(np.nanmedian(upper))
+    return float(np.nanmax(c))
+
+
 def left_edge(dial, curve, tol=TOL):
     c = smooth(curve)
     if not np.isfinite(c).any():
         return np.nan, 0
-    top = np.nanmax(c); idx = np.where(c >= top - tol)[0]; j = int(idx[0])
+    top = plateau_level(c); idx = np.where(c >= top - tol)[0]
+    if idx.size == 0:
+        return np.nan, 0
+    j = int(idx[0])
     if j == 0:
         return float(dial[0]), 0
     x0, x1, y0, y1 = np.log(dial[j - 1]), np.log(dial[j]), c[j - 1], c[j]
@@ -105,8 +119,8 @@ def edge_stats(P, n, T, lands, g=G):
         sig, isig, t0, thalf = s_hi, i_hi, t_hi, h_hi
     else:
         w = (np.log(edge) - np.log(lo)) / (np.log(hi) - np.log(lo)); sig = (1 - w) * s_lo + w * s_hi; isig = (1 - w) * i_lo + w * i_hi; t0 = (1 - w) * t_lo + w * t_hi; thalf = (1 - w) * h_lo + w * h_hi
-    plateau, mu0 = float(np.nanmax(smooth(curve))), float(curve[0])
-    censored = (j == 0)
+    plateau, mu0 = plateau_level(smooth(curve)), float(curve[0])
+    censored = (j == 0) or not np.isfinite(edge)
     return edge, sig - 1.0, isig - 1.0, t0, plateau, mu0, censored, thalf
 
 
@@ -132,21 +146,27 @@ def predicted_time_ratio(g, plateau, mu0):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--out", default="results/study_gap2"); ap.add_argument("--seed-base", type=int, default=CFG["seed_base"])
-    ap.add_argument("--smoke", action="store_true"); a = ap.parse_args()
+    ap.add_argument("--smoke", action="store_true"); ap.add_argument("--plateau", default="max", choices=["max", "median-top"])
+    ap.add_argument("--reanalyze", default=None, help="directory with population.npy and reservoir.npy to re-analyse without new runs")
+    a = ap.parse_args()
     cfg = dict(CFG, seed_base=a.seed_base)
-    global NS, TS, MS, KS_ESN, RHOS, ESN_CELLS, GS, T_G, N_G
+    global NS, TS, MS, KS_ESN, RHOS, ESN_CELLS, GS, T_G, N_G, PLATEAU
+    PLATEAU = a.plateau
     if a.smoke:
-        cfg.update(n_land=2, n_seed=2, n_esn_seed=2); NS = [50, 100]; TS = [250, 500]; MS = MS[::6]; KS_ESN = [1, 4, 16]; RHOS = RHOS[::6]; ESN_CELLS = ESN_CELLS[:3]; GS = [5, 10]; T_G = [250]; N_G = 100
+        cfg.update(n_land=2, n_seed=2, n_esn_seed=2); NS = [50, 100]; TS = [250, 500]; MS = MS[::6]; KS_ESN = [1, 4, 16]; RHOS = RHOS[::6]; ESN_CELLS = ESN_CELLS[:4]; GS = [5, 10]; T_G = [250]; N_G = 100
     os.makedirs(a.out, exist_ok=True); t0 = time.time(); rng = np.random.default_rng(0)
     L = [f"# task-set-gap-2: results (seed base {cfg['seed_base']})\n"]; out = {}
 
     # ---- population ----
-    tasks = [(n, T, G, li, cfg) for n in NS for T in TS for li in range(cfg["n_land"])] + \
-            [(N_G, T, g, li, cfg) for g in GS if g != G for T in T_G for li in range(cfg["n_land"])]
-    with ProcessPoolExecutor() as ex:
-        prow = [r for res in ex.map(pop_task, tasks) for r in res]
-    P = np.array(prow, dtype=[("n", int), ("T", int), ("G", int), ("land", int), ("seed", int), ("m", float), ("perf", float), ("sigma", float), ("isigma", float), ("t0", float), ("thalf", float)])
-    np.save(f"{a.out}/population.npy", P)
+    if a.reanalyze:
+        P = np.load(f"{a.reanalyze}/population.npy")
+    else:
+        tasks = [(n, T, G, li, cfg) for n in NS for T in TS for li in range(cfg["n_land"])] + \
+                [(N_G, T, g, li, cfg) for g in GS if g != G for T in T_G for li in range(cfg["n_land"])]
+        with ProcessPoolExecutor() as ex:
+            prow = [r for res in ex.map(pop_task, tasks) for r in res]
+        P = np.array(prow, dtype=[("n", int), ("T", int), ("G", int), ("land", int), ("seed", int), ("m", float), ("perf", float), ("sigma", float), ("isigma", float), ("t0", float), ("thalf", float)])
+        np.save(f"{a.out}/population.npy", P)
     lands = list(range(cfg["n_land"]))
     L.append("## Islands: edge gaps against the zero-parameter predictions (G = 10, K = 6)\n")
     L.append("| N | T | edge m | censored | agent gap | 90% interval | in | island gap | 90% interval | t0 | pred agent | ratio | pred island | ratio | island gap x (T - t0) |")
@@ -197,15 +217,18 @@ def main():
     out["P-B4"] = "inconclusive" if len(rt) < 6 else ("pass" if (n_in4 >= len(rt) - 2 and n_out4 == 0) else ("fail" if (n_out4 >= 2 or n_in4 < len(rt) // 2) else "inconclusive"))
 
     # ---- reservoir ----
-    tasks = [(kind, noise, n, ridge, si, cfg) for kind, noise, n, ridge in ESN_CELLS for si in range(cfg["n_esn_seed"])]
-    with ProcessPoolExecutor() as ex:
-        erow = [r for res in ex.map(esn_task, tasks) for r in res]
-    E = np.array(erow, dtype=[("kind", "U6"), ("noise", float), ("n", int), ("ridge", float), ("k", int), ("seed", int), ("rho", float), ("r2", float), ("sigma", float)])
-    np.save(f"{a.out}/reservoir.npy", E)
+    if a.reanalyze:
+        E = np.load(f"{a.reanalyze}/reservoir.npy")
+    else:
+        tasks = [(kind, noise, n, ridge, si, cfg) for kind, noise, n, ridge in ESN_CELLS for si in range(cfg["n_esn_seed"])]
+        with ProcessPoolExecutor() as ex:
+            erow = [r for res in ex.map(esn_task, tasks) for r in res]
+        E = np.array(erow, dtype=[("kind", "U6"), ("noise", float), ("n", int), ("ridge", float), ("k", int), ("seed", int), ("rho", float), ("r2", float), ("sigma", float)])
+        np.save(f"{a.out}/reservoir.npy", E)
 
     def alpha_cell(noise, n, ridge, seeds):
         feas, gaps = [], []
-        floor = 0.4 if noise == NOISE_DOM else R2_FLOOR
+        floor = 0.4 if noise in (NOISE_DOM, NOISE_HI) else R2_FLOOR
         for k in KS_ESN:
             sel = (E["noise"] == noise) & (E["n"] == n) & (E["ridge"] == ridge) & (E["k"] == k) & np.isin(E["seed"], seeds)
             if not sel.any():
@@ -226,23 +249,36 @@ def main():
         L.append(f"| {kind} | {noise} | {n} | {ridge:g} | {feas} | {', '.join(f'{g:+.3f}' for g in gaps)} | {al:+.2f} | [{lo:+.2f}, {hi:+.2f}] |")
     def get(noise, n, ridge):
         return A.get((noise, n, ridge), (np.nan, np.nan, np.nan, []))
-    # P-C1: alpha at noise 0.3 in [0.85, 1.05]; fail if interval wholly outside [0.7, 1.2] or too few feasible delays
-    al, lo, hi, feas = get(NOISE_DOM, 200, 1e-6)
-    out["P-C1"] = "pass" if (len(feas) >= 3 and 0.85 <= al <= 1.05) else ("fail" if (len(feas) >= 3 and (hi < 0.7 or lo > 1.2)) else "inconclusive")
-    # P-C2: alpha(n=800) - alpha(n=200) at noise 0.01 >= 0.05 with a bootstrap interval excluding 0
+    # P-C1: the exponent rises with noise: alpha(0.01) < alpha(0.15) < alpha(0.2), and alpha(0.2) - alpha(0.01) >= 0.10 with interval above 0
+    a01, a15, a20 = get(0.01, 200, 1e-6), get(NOISE_DOM, 200, 1e-6), get(NOISE_HI, 200, 1e-6)
+    ordered = (len(a15[3]) >= 3 and len(a20[3]) >= 3 and a01[0] < a15[0] < a20[0])
+    db = []
+    for _ in range(N_BOOT):
+        sd = rng.choice(seeds_all, len(seeds_all), replace=True); db.append(alpha_cell(NOISE_HI, 200, 1e-6, sd)[0] - alpha_cell(0.01, 200, 1e-6, sd)[0])
+    d20, dlo, dhi = a20[0] - a01[0], *np.nanpercentile(db, [5, 95])
+    L.append(f"\nP-C1: alpha at noise 0.01, {NOISE_DOM}, {NOISE_HI} = {a01[0]:+.2f}, {a15[0]:+.2f}, {a20[0]:+.2f}; ordered: {ordered}; alpha(0.2) - alpha(0.01) = {d20:+.3f}, interval [{dlo:+.3f}, {dhi:+.3f}]")
+    if len(a15[3]) < 3 or len(a20[3]) < 3:
+        out["P-C1"] = "inconclusive"
+    elif ordered and d20 >= 0.10 and dlo > 0:
+        out["P-C1"] = "pass"
+    elif (a20[0] < a01[0]) or dhi < 0:
+        out["P-C1"] = "fail"
+    else:
+        out["P-C1"] = "inconclusive"
+    # P-C2: size effect at noise 0.01
     d = get(0.01, 800, 1e-6)[0] - get(0.01, 200, 1e-6)[0]
     db = []
     for _ in range(N_BOOT):
-        s = rng.choice(seeds_all, len(seeds_all), replace=True); db.append(alpha_cell(0.01, 800, 1e-6, s)[0] - alpha_cell(0.01, 200, 1e-6, s)[0])
-    dlo, dhi = np.nanpercentile(db, [5, 95])
-    L.append(f"\nP-C2: alpha(800) - alpha(200) at noise 0.01 = {d:+.3f}, interval [{dlo:+.3f}, {dhi:+.3f}]")
-    L.append("(size effect is exploratory in version two; not a prediction)")
+        sd = rng.choice(seeds_all, len(seeds_all), replace=True); db.append(alpha_cell(0.01, 800, 1e-6, sd)[0] - alpha_cell(0.01, 200, 1e-6, sd)[0])
+    slo, shi = np.nanpercentile(db, [5, 95])
+    L.append(f"P-C2: alpha(800) - alpha(200) at noise 0.01 = {d:+.3f}, interval [{slo:+.3f}, {shi:+.3f}]")
+    out["P-C2"] = "pass" if (d > 0 and slo > 0) else ("fail" if shi < 0 else "inconclusive")
     # P-C3: ridge ordering at noise 0.001
     r6, r3, r1 = get(0.001, 200, 1e-6)[0], get(0.001, 200, 1e-3)[0], get(0.001, 200, 1e-1)[0]
     L.append(f"P-C3: alpha by ridge at noise 0.001: 1e-6 -> {r6:+.2f}, 1e-3 -> {r3:+.2f}, 1e-1 -> {r1:+.2f}")
     out["P-C3"] = "pass" if (r6 < r3 < r1) else ("fail" if (r6 > r3 > r1) else "inconclusive")
     L.append("\n## Outcomes, applied literally\n")
-    for pid in ["P-B1", "P-B2", "P-B3", "P-B4", "P-C1", "P-C3"]:
+    for pid in ["P-B1", "P-B2", "P-B3", "P-B4", "P-C1", "P-C2", "P-C3"]:
         L.append(f"- {pid}: {out[pid]}")
     L.append(f"\nElapsed {time.time() - t0:.0f}s.\n")
     open(f"{a.out}/summary.md", "w").write("\n".join(L) + "\n"); print("\n".join(L))
