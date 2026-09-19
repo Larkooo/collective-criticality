@@ -1,6 +1,6 @@
-# Collective search: when communication helps
+# Signal and noise in agent communication
 
-A simulation toolkit for studying how groups balance **sharing discoveries** with **independent exploration**.
+Experiments on **information sharing between agents**: how useful discoveries spread, how errors propagate, and when copying crowds out independent exploration.
 
 Agents search problems with many local optima. Each agent can copy a better solution from a neighbour or try to improve its own. Changing who can communicate, and how often, changes both how quickly good solutions spread and how much independent search survives.
 
