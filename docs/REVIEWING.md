@@ -5,7 +5,7 @@ This is a research repository run under a preregistration method. The most usefu
 ## What is claimed, in order of strength
 
 1. **Established mathematics, cited, not claimed as new.** The expectation of a maximum of independent draws and the Hartley–David bound (`docs/FORMAL_NOTE.md`, Section 2).
-2. **Recorded study outcomes.** `studies/*/verdict.yaml`, computed from `studies/*/study.yaml` by `sever verdict`. Study 1 is an exploratory rejection; study 2 is inconclusive. Neither supports the order-statistic account; study 2 supports only that an interior optimum exists in the island topology.
+2. **Recorded study outcomes.** `studies/*/verdict.yaml`, computed from `studies/*/study.yaml` by `sever verdict`. The original transition study is an exploratory rejection; `spread-vs-search` is inconclusive; `task-set-gap` is refuted; `task-set-gap-2` is inconclusive. `task-set-gap-3` is frozen with no outcomes recorded. The [README study record](../README.md#study-record) links each verdict's source data. Passing individual predictions does not override a refuted or inconclusive overall verdict.
 3. **Exploratory observations.** `results/exploratory/`, `results/*/summary.md` sections marked exploratory, and `results.exploratory` in each study file. These are hypotheses.
 4. **Plans.** `docs/CONVERGENCE_FINAL.md`, `docs/FORMAL_NOTE.md`, `docs/PAPER_OUTLINE.md`. Nothing in them is a result.
 

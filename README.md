@@ -1,64 +1,100 @@
-# collective-criticality
+# Collective search: when communication helps
 
-When does communication help a population of agents search a rugged problem, and by how much? This repository holds a dynamical population model, two completed studies run under a preregistration method, an exploratory calculation that motivates the next study, and the agreed plan for a joint research line with a second agent (Codex). Nothing here is a confirmed theory. The status table says exactly what has and has not been shown.
+A simulation toolkit for studying how groups balance **sharing discoveries** with **independent exploration**.
 
-## Status
+Agents search problems with many local optima. Each agent can copy a better solution from a neighbour or try to improve its own. Changing who can communicate, and how often, changes both how quickly good solutions spread and how much independent search survives.
 
-| Study | Theory | Verdict | One-line result |
-|---|---|---|---|
-| `studies/optimum-at-transition` | Performance peaks at the diversity phase transition | exploratory rejection (criteria written after the data) | The optimum sits about twice above the transition, which is graph percolation; ratio unchanged from N = 100 to 400 |
-| `studies/spread-vs-search` | Optimum set by spread rate against local search rate | inconclusive | Interior optimum replicates in the island topology, gains +0.016 to +0.055 of the global maximum; the location test could not be resolved on a two-decade plateau |
-| `results/exploratory/order_stat_check.md` | Order-statistic reference (not preregistered) | exploratory | Exact expected best-of-10 isolated island endpoints is within −0.013 to +0.020 of study-2 values; not all within the provisional 0.010 margin |
+The repository includes the simulator, recorded runs, figures, mathematical models, and experiments with predictions fixed before collecting data.
 
-Next: Gate 0 of `docs/CONVERGENCE_FINAL.md`, a formal note under review in `docs/FORMAL_NOTE.md` and a literature pass, then a design pilot, then Study 3. No confirmatory result for the order-statistic account exists yet.
+## What the experiments found
 
-## The model
+The original hypothesis—that performance peaks at the diversity transition—was **refuted in an exploratory study**. Later experiments found a broad range of intermediate communication rates that outperformed both isolated groups and maximum cross-group sharing. Predicting the precise location of that range remains unresolved.
 
-`critpop` implements copy-or-climb agents (Lazer and Friedman, 2007) on NK landscapes with the global optimum computed exhaustively. Each step an agent copies a strictly better neighbour if it sees one, otherwise tries single-bit flips and keeps an improvement. Dials: random-graph density, copy-noise temperature, island count and cross-island observation rate, flips per step. Recorded: mean and best fitness, diversity, distinct solutions, adoption and evaluation counts, cross-island contacts, ancestry lineages (a diagnostic, not a sample count), holders of the best candidate, and optionally the final population. Defaults reproduce the first study bit for bit; `scripts/regression.py` checks this.
+![Recorded mean solution quality across cross-group communication rates for three landscape ruggedness settings. Each curve peaks at an intermediate rate.](docs/assets/communication.png)
 
-## Method
+**Recorded island-search experiment:** 100 agents in 10 groups, 500 steps, four landscapes and six seeds per setting, with one local search trial per step. Agents communicate within their group at every setting; the horizontal axis controls observation of other groups. Higher `K` means a more rugged landscape. Curves show means; the broad peaks do not identify a precise optimal rate.
 
-All confirmatory work runs under [sever](https://github.com/Larkooo/sever): theory, rivals, predictions with numeric pass and fail criteria and three-outcome forecasts, analysis plan, and kill rule are hashed to a git commit before data; outcomes are recorded by applying the criteria literally; the verdict is computed. `CLAUDE.md` is the instruction set for an assistant working here.
+| Landscape ruggedness | No cross-group sharing | Maximum cross-group sharing | Best sampled intermediate rate |
+| --- | ---: | ---: | ---: |
+| K = 2 | 0.9512 | 0.9792 | **0.9948** |
+| K = 6 | 0.8797 | 0.9280 | **0.9536** |
+| K = 12 | 0.8436 | 0.8735 | **0.9286** |
 
+Values are final population-mean fitness divided by the landscape's global optimum. The intermediate column selects the best tested rate on these data; it is not a held-out performance estimate. [Study report](results/study2/summary.md) · [Saved runs](results/study2/runs.npy) · [Figure script](scripts/plot_overview.py)
+
+## Study record
+
+| Question | Recorded outcome | Evidence |
+| --- | --- | --- |
+| Does peak performance coincide with the diversity transition? | **Refuted, exploratory.** Criteria were written after seeing the data. | [Study](studies/optimum-at-transition/study.yaml), [results](results/figures/summary.md) |
+| Does the balance between information spread and local search predict the optimum? | **Inconclusive.** The intermediate-performance prediction passed; the location and scaling tests were unresolved. | [Study](studies/spread-vs-search/study.yaml), [results](results/study2/summary.md) |
+| Can task duration predict the distance from a propagation transition? | **Refuted.** A critical population prediction failed, despite passing reservoir predictions. | [Study](studies/task-set-gap/study.yaml), [results](results/study_gap/summary.md) |
+| Do revised coverage and timing predictions generalize across population sizes? | **Inconclusive.** Timing passed in 8/8 settings; critical ratio tests remained unresolved. | [Study](studies/task-set-gap-2/study.yaml), [results](results/study_gap2/summary.md) |
+| Does a more robust plateau estimator resolve those tests? | **Frozen; no outcomes recorded.** A reanalysis of previously seen data motivated this version, but is not its test. | [Plan](studies/task-set-gap-3/study.yaml), [design notes](studies/task-set-gap-3/notes.md) |
+
+The broader idea that one law explains the best distance from criticality across these systems remains a research hypothesis. The model experiments do not establish an optimal communication policy for real language-model agents.
+
+## How the model works
+
+1. **Create a search problem.** An NK landscape assigns a score to each binary solution. The global optimum is computed exhaustively, so solution quality has a known reference.
+2. **Connect the agents.** Use a random graph or groups with dense internal connections and a configurable rate of cross-group observation.
+3. **Copy or search.** An agent that sees a better neighbour copies it; otherwise it tries local bit flips. Optional copying noise and additional local trials are separate controls.
+4. **Measure the population.** Record solution quality, diversity, convergence, copying, fitness evaluations, contacts, and propagation of discoveries.
+
+Copying and local search compete for steps, so equal run lengths need not mean equal numbers of fitness evaluations. The simulator records both. Ancestry labels describe surviving lineages; they are not a count of independent searches.
+
+Related modules study [branching processes](critpop/branching.py) and [reservoir memory](critpop/reservoir.py). Small [Gemma relay](results/gemma_relay.md) and [distributed-clue](results/clue_network_pilot.md) pilots document experimental-design limitations; they are separate from the population-search results above.
+
+## Run locally
+
+Python 3.11+ and [uv](https://docs.astral.sh/uv/) are required. The core simulator uses NumPy and Matplotlib; no GPU or model download is needed.
+
+```bash
+git clone https://github.com/Larkooo/collective-criticality.git
+cd collective-criticality
+uv sync --frozen
+
+# Reproduce the bundled 80-run regression fixture exactly.
+uv run python scripts/regression.py
+
+# Rebuild the overview figure from recorded study data.
+uv run python scripts/plot_overview.py
+
+# Check the mathematical examples and model-scope assumptions.
+uv run python scripts/formal_checks.py --model-checks
 ```
-uv run sever status                     # every study, its state, outcomes recorded
-uv run sever check spread-vs-search     # preregistration intact?
-uv run sever lint                       # criteria, forecasts, weak tests
-uv run sever graveyard                  # what died, what killed it, what replaced it
+
+For a fresh small sweep and its plots:
+
+```bash
+mkdir -p /tmp/collective-search
+uv run python -m critpop sweep --quick --out /tmp/collective-search/sweep.npz
+uv run python -m critpop analyze /tmp/collective-search/sweep.npz \
+  --figdir /tmp/collective-search/figures
 ```
 
-## Reproduce
+Full experiment entry points are `scripts/study2.py`, `scripts/study_gap.py`, and `scripts/study_gap2.py`. These can take minutes to tens of minutes and write result files. Reproduce an archived study in a separate checkout at its recorded freeze revision. In particular, the current `study_gap2.py` also contains version-three settings: running its reanalysis against version-two arrays asks for a noise setting absent from those data and does not reproduce the archived report exactly.
 
-Timings are for a 10-core Apple Silicon machine.
+## Research method
 
-```
-uv sync
-uv run python scripts/regression.py                  # 5 s: model defaults unchanged
-uv run python -m critpop sweep && uv run python -m critpop analyze   # 3 min: study 1 sweep, figures, results/figures/summary.md
-uv run python scripts/finite_size.py                 # 25 s: results/finite_size.md
-uv run python scripts/study2.py                      # 2.5 min: study 2, results/study2/summary.md and figures
-uv run python scripts/exploratory_order_stat.py      # 1 min: results/exploratory/order_stat_check.md
+Studies use [sever](https://github.com/Larkooo/sever) to record competing explanations, numeric pass/fail criteria, analysis plans, and stopping rules before data collection. Frozen sections are hashed to a Git commit. Failed and inconclusive predictions remain in the record; a revised design gets a new study version.
+
+```bash
+uv run sever status
+uv run sever check task-set-gap-3
 ```
 
-Seeds are fixed from (K, landscape, seed, parameter, sweep id). `results/sweep.npz` is not committed (regenerable, 2.5 MB); everything else needed to check a number in a summary is.
+The first study was exploratory and was never frozen. Numerical checks of mathematical examples test the implementation; they are distinct from experimental evidence for a hypothesis.
 
-## Layout
+## Explore the repository
 
-```
-critpop/                model, landscape, study-1 sweep and analysis
-scripts/                study 2, finite-size check, exploratory check, regression
-studies/<slug>/         study.yaml (frozen sections, outcomes, results, review), freeze.yaml, verdict.yaml, notes.md
-results/                figures, summaries, saved runs
-docs/CONVERGENCE_FINAL.md   the agreed joint plan with Codex; earlier versions kept as history
-docs/FORMAL_NOTE.md         draft formal note, Gate 0, under review
-docs/PAPER_OUTLINE.md       what the paper will be, and what does not exist yet
-docs/REVIEWING.md           how to review this repository and how to object
-```
+| Path | Contents |
+| --- | --- |
+| [critpop/](critpop/) | Population simulator, landscapes, branching processes, reservoir model |
+| [scripts/](scripts/) | Experiments, analysis, regression checks, figure generation |
+| [studies/](studies/) | Predictions, freeze records, outcomes, and computed verdicts |
+| [results/](results/) | Saved arrays, plots, and experiment reports |
+| [Formal structure](docs/FORMAL_STRUCTURE.md) | Mathematical models and their stated assumptions |
+| [Review guide](docs/REVIEWING.md) | How to inspect predictions, reproduce results, and challenge a claim |
 
-## Collaboration
-
-The finite-policy incentive benchmark by Codex (`collective-incentives` v0.1.0) is a preserved reference and control for the incentive axis. Its review of the first convergence proposal and its sign-off on the second are the reason several claims in earlier documents were retracted; the retractions are listed in `docs/CONVERGENCE_AGREED.md` Section 1 and `docs/CONVERGENCE_FINAL.md` Sections 2 and 3.
-
-## References
-
-Lazer and Friedman (2007) ASQ. Derex, Perreault and Boyd (2018) Phil Trans B. Kauffman and Macready (1995). Hartley and David (1954) Ann. Math. Stat. Frahnow and Kötzing (2018). Brown et al. (2024). Chen et al. (2021). Still, Sivak, Bell and Crooks (2012) PRL. Monderer and Shapley (1996).
+The search dynamics build on Lazer and Friedman (2007). Earlier theory drafts and research plans are retained in `docs/`; use the study record above for the current experimental status.
